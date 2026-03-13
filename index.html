@@ -1089,6 +1089,9 @@ let discoverFilter = "all";
 let dashViewMode = _meta.dashViewMode || "grid";
 let reminderStatus = {};
 let toastTimer = null;
+let multiSelectMode = false;
+let selectedPlantIds = new Set();
+let growFormOpen = false;
 
 function getDaysUntil(lastDate, intervalDays) {
   const next = new Date(new Date(lastDate).getTime() + intervalDays * 86400000);
@@ -2140,8 +2143,6 @@ function showManageLocationsModal() {
 // MULTI-SELECT SYSTEM
 // ══════════════════════════════════════════════════════
 
-let multiSelectMode = false;
-let selectedPlantIds = new Set();
 
 function toggleMultiSelect() {
   multiSelectMode = !multiSelectMode;
@@ -2359,7 +2360,6 @@ function setGrowOutcome(plantId, entryId, outcome) {
 }
 
 // ── Render Grow tab ──────────────────────────────────
-let growFormOpen = false;
 
 function renderGrowTab(plantId) {
   const container = document.getElementById("grow-tab-content");
@@ -3178,9 +3178,7 @@ function importGardenData(file) {
         (photoCount    ? `, ${photoCount} photo${photoCount!==1?"s":""}`   : "") +
         (growCount     ? `, ${growCount} grow log${growCount!==1?"s":""}`  : "") +
         (locationCount ? `, ${locationCount} location${locationCount!==1?"s":""}` : "") +
-        "?
-
-This will replace your current garden data.";
+        "?\n\nThis will replace your current garden data.";
 
       if (!confirm(msg)) return;
 
