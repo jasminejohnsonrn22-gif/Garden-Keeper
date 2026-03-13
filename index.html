@@ -704,6 +704,24 @@
       </div>
     </div>
 
+    <!-- Data Backup -->
+    <div class="settings-section">
+      <div class="settings-label settings-collapsible" data-target="sect-backup">
+        <span>Data Backup</span><span class="settings-chevron">▾</span>
+      </div>
+      <div id="sect-backup" class="settings-sect-body" style="display:none">
+        <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;line-height:1.5">Export all your plants, journal photos, grow logs, and locations to a file. Import it after any app update to restore everything.</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn-primary" id="btn-export-data" style="font-size:13px;padding:10px">⬇ Export Garden Data</button>
+          <label class="btn-ghost" id="btn-import-label" style="font-size:13px;padding:10px;text-align:center;cursor:pointer;display:block">
+            ⬆ Import Garden Data
+            <input type="file" id="btn-import-data" accept=".json" style="display:none">
+          </label>
+        </div>
+        <p id="backup-status" style="font-size:12px;color:var(--green);margin-top:8px;font-style:italic;display:none"></p>
+      </div>
+    </div>
+
   </div>
   <div class="settings-footer">
     <button class="btn-ghost" id="settings-reset-appearance" style="width:100%;font-size:13px">Reset to defaults</button>
@@ -3109,6 +3127,118 @@ function scheduleDailyCheck() {
 // ── End Push Notifications ───────────────────────────────────────
 
 
+
+// ══════════════════════════════════════════════════════
+// BACKUP & RESTORE
+// ══════════════════════════════════════════════════════
+
+const BACKUP_VERSION = 1;
+
+function exportGardenData() {
+  const backup = {
+    version:   BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    plants:    myPlants,
+    locations: userLocations,
+    grow:      grow,
+    journal:   journal,
+    meta:      loadMeta(),
+  };
+
+  const json = JSON.stringify(backup, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url  = URL.createObjectURL(blob);
+  const date = new Date().toISOString().slice(0,10);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `garden-keeper-backup-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("Garden data exported ✓");
+}
+
+function importGardenData(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const backup = JSON.parse(e.target.result);
+
+      // Validate it looks like a Garden Keeper backup
+      if (!backup.plants || !Array.isArray(backup.plants)) {
+        showToast("Invalid backup file", "warn");
+        return;
+      }
+
+      const plantCount    = backup.plants.length;
+      const photoCount    = Object.values(backup.journal || {}).reduce((s, arr) => s + arr.length, 0);
+      const growCount     = Object.values(backup.grow    || {}).reduce((s, arr) => s + arr.length, 0);
+      const locationCount = (backup.locations || []).length;
+
+      const msg = `Import ${plantCount} plant${plantCount!==1?"s":""}` +
+        (photoCount    ? `, ${photoCount} photo${photoCount!==1?"s":""}`   : "") +
+        (growCount     ? `, ${growCount} grow log${growCount!==1?"s":""}`  : "") +
+        (locationCount ? `, ${locationCount} location${locationCount!==1?"s":""}` : "") +
+        "?
+
+This will replace your current garden data.";
+
+      if (!confirm(msg)) return;
+
+      // Restore all data
+      myPlants       = backup.plants;
+      userLocations  = backup.locations || userLocations;
+      grow           = backup.grow      || {};
+      journal        = backup.journal   || {};
+
+      // Persist to localStorage
+      savePlants();
+      saveLocations();
+      saveGrow();
+      saveJournal(journal);
+      if (backup.meta) saveMeta(backup.meta);
+
+      // Sync customNextId
+      customNextId = Math.max(1000, ...myPlants.filter(p=>p.custom).map(p=>p.id+1), 1000);
+
+      // Show status
+      const status = document.getElementById("backup-status");
+      if (status) {
+        status.textContent = `✓ Restored ${plantCount} plant${plantCount!==1?"s":""}${photoCount?" + "+photoCount+" photo"+( photoCount!==1?"s":""):""}`;
+        status.style.display = "block";
+        setTimeout(() => { status.style.display = "none"; }, 5000);
+      }
+
+      showToast(`✓ Garden restored — ${plantCount} plants`);
+      navigateTo("dashboard");
+
+    } catch(err) {
+      console.error("Import error:", err);
+      showToast("Could not read file", "warn");
+    }
+  };
+  reader.readAsText(file);
+}
+
+function initBackup() {
+  const exportBtn = document.getElementById("btn-export-data");
+  const importInput = document.getElementById("btn-import-data");
+  if (exportBtn && !exportBtn._wired) {
+    exportBtn._wired = true;
+    exportBtn.addEventListener("click", exportGardenData);
+  }
+  if (importInput && !importInput._wired) {
+    importInput._wired = true;
+    importInput.addEventListener("change", () => {
+      const file = importInput.files[0];
+      if (file) { importGardenData(file); importInput.value = ""; }
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// END BACKUP & RESTORE
+// ══════════════════════════════════════════════════════
+
 // ══════════════════════════════════════════════════════
 // APPEARANCE SETTINGS
 // ══════════════════════════════════════════════════════
@@ -3481,6 +3611,7 @@ function initSettings() {
   applyFont(appearance.fontId);
   applyCustomColors(appearance.customColors);
   applyFontSizes(appearance.fontSizes);
+  initBackup();
 }
 
 // ── Mobile nav sync ──
