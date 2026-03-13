@@ -607,7 +607,18 @@
 </style>
 </head>
 <body>
-
+<div id="error-banner" style="display:none;position:fixed;top:0;left:0;right:0;background:#c0392b;color:white;padding:12px 16px;z-index:9999;font-family:monospace;font-size:13px;white-space:pre-wrap;word-break:break-all"></div>
+<script>
+window.onerror = function(msg, src, line, col, err) {
+  var b = document.getElementById('error-banner');
+  if(b) { b.style.display='block'; b.textContent = 'ERROR: ' + msg + '\nLine: ' + line + '\n' + (err&&err.stack?err.stack.split('\n').slice(0,3).join('\n'):''); }
+  return false;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  var b = document.getElementById('error-banner');
+  if(b) { b.style.display='block'; b.textContent = 'PROMISE ERROR: ' + (e.reason && e.reason.message || e.reason); }
+});
+</script>
 <div id="toast"></div>
 
 <header id="header">
