@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Garden Keeper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --parchment: #f5f0e8;
+    --parchment-dark: #ede8df;
+    --forest: #2d3d2e;
+    --green: #3d8361;
+    --green-light: #7fb069;
+    --ink: #2d3d2e;
+    --ink-mid: #5a4f3e;
+    --ink-soft: #8a7a60;
+    --ink-faint: #b0a08a;
+    --rule: #d4c9b5;
+    --card-border: #e8e2d8;
+  }
+
+  html { font-size: 16px; }
+  body { font-family: 'Crimson Pro', Georgia, serif; background: var(--parchment); color: var(--ink); min-height: 100vh; }
+  .display { font-family: 'Playfair Display', Georgia, serif; }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: var(--parchment-dark); }
+  ::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 3px; }
+
+  @keyframes fadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes toastIn { from { opacity:0; transform:translateX(60px) scale(0.92); } to { opacity:1; transform:translateX(0) scale(1); } }
+  @keyframes pulse { 0%,100% { box-shadow:0 0 0 0 rgba(192,57,43,0.4); } 50% { box-shadow:0 0 0 6px rgba(192,57,43,0); } }
+
+  .page-enter { animation: fadeUp 0.42s cubic-bezier(0.22,1,0.36,1) both; }
+
+  #header { background: var(--forest); position: sticky; top: 0; z-index: 100; border-bottom: 3px solid var(--green-light); }
+  .header-inner { max-width: 1020px; margin: 0 auto; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .logo-wrap { display: flex; align-items: center; gap: 14px; }
+  .logo-emoji { font-size: 26px; line-height: 1; }
+  .logo-title { color: #d8eacc; font-size: 19px; font-weight: 700; letter-spacing: 0.5px; line-height: 1; }
+  .logo-sub { color: var(--green-light); font-size: 12px; letter-spacing: 1.5px; margin-top: 2px; font-style: italic; }
+
+  nav { display: flex; align-items: center; gap: 4px; }
+  .nav-btn { background: transparent; border: none; color: #8a9e7a; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-family: 'Crimson Pro', Georgia, serif; font-size: 14px; letter-spacing: 0.3px; display: flex; align-items: center; gap: 7px; transition: all 0.2s; }
+  .nav-btn:hover { color: #d8eacc; background: rgba(127,176,105,0.18); }
+  .nav-btn.active { color: #d8eacc; background: rgba(127,176,105,0.18); font-weight: 600; }
+  .nav-badge { background: #c0392b; color: white; border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; animation: pulse 2s infinite; }
+  .nav-icon { font-size: 11px; opacity: 0.7; }
+
+  main { max-width: 1020px; margin: 0 auto; padding: 32px 28px 60px; }
+
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 12px; }
+  .section-title { font-family: 'Playfair Display', serif; color: var(--ink); font-size: 30px; font-weight: 700; line-height: 1; }
+  .section-sub { color: var(--ink-soft); font-size: 15px; margin-top: 6px; font-style: italic; }
+  hr.rule { border: none; border-top: 1px solid var(--rule); margin: 20px 0; }
+
+  .btn-primary { background: var(--green); color: var(--parchment); border: none; border-radius: 4px; padding: 11px 24px; font-family: 'Crimson Pro', Georgia, serif; font-size: 15px; font-weight: 600; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s; }
+  .btn-primary:hover { background: #2d6248; transform: translateY(-1px); box-shadow: 0 6px 18px rgba(61,131,97,0.35); }
+  .btn-ghost { background: transparent; color: var(--ink-soft); border: 1.5px solid var(--rule); border-radius: 4px; padding: 9px 18px; font-family: 'Crimson Pro', Georgia, serif; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+  .btn-ghost:hover { border-color: var(--green); color: var(--green); }
+  .btn-danger { background: transparent; color: #c0392b; border: 1.5px solid rgba(192,57,43,0.25); border-radius: 4px; padding: 8px 16px; font-family: 'Crimson Pro', Georgia, serif; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+  .btn-danger:hover { background: rgba(192,57,43,0.06); border-color: #c0392b; }
+
+  .filters { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+  .chip { background: white; border: 1.5px solid var(--rule); color: var(--ink-mid); padding: 6px 16px; border-radius: 100px; font-family: 'Crimson Pro', Georgia, serif; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: all 0.2s; user-select: none; }
+  .chip:hover { border-color: var(--green); color: var(--green); }
+  .chip.active { background: var(--forest); border-color: var(--forest); color: #d8eacc; font-weight: 600; }
+  .chip-count { background: var(--parchment-dark); color: var(--ink-soft); border-radius: 100px; padding: 1px 8px; font-size: 11px; font-weight: 600; }
+  .chip.active .chip-count { background: rgba(255,255,255,0.15); color: #d8eacc; }
+
+  .plant-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 18px; }
+  .discover-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px; }
+
+  .plant-card { background: white; border-radius: 10px; border: 1.5px solid var(--card-border); box-shadow: 0 2px 12px rgba(60,40,20,0.07); overflow: hidden; cursor: pointer; transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.28s ease; }
+  .plant-card:hover { transform: translateY(-5px) rotate(-0.4deg); box-shadow: 0 16px 48px rgba(60,40,20,0.15) !important; }
+  .plant-card.owned { opacity: 0.7; cursor: default; }
+  .plant-card.owned:hover { transform: none; box-shadow: 0 2px 12px rgba(60,40,20,0.07) !important; }
+  .card-top-bar { height: 4px; }
+  .card-body { padding: 18px 20px 20px; }
+  .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .card-emoji { font-size: 42px; line-height: 1; }
+  .card-badges { text-align: right; }
+  .card-name { font-family: 'Playfair Display', serif; color: var(--ink); font-size: 19px; font-weight: 600; margin-bottom: 4px; line-height: 1.2; }
+  .card-sunlight { color: var(--ink-faint); font-size: 13px; margin-bottom: 16px; font-style: italic; }
+
+  .urgency-badge { display: inline-block; border-radius: 4px; padding: 3px 10px; font-size: 11px; font-weight: 700; font-family: 'Crimson Pro', serif; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 5px; }
+  .cat-badge { border-radius: 3px; padding: 2px 7px; font-family: 'Crimson Pro', serif; font-weight: 600; font-size: 11px; }
+
+  .care-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .care-box { border-radius: 7px; padding: 10px 12px; border: 1px solid transparent; }
+  .care-icon { font-size: 16px; margin-bottom: 4px; }
+  .care-days { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 600; line-height: 1; }
+  .care-label { font-size: 11px; color: var(--ink-faint); margin-top: 2px; }
+
+  .empty-state { text-align: center; padding: 80px 20px; background: white; border-radius: 12px; border: 1.5px dashed var(--rule); }
+  .empty-emoji { font-size: 56px; }
+  .empty-title { font-family: 'Playfair Display', serif; color: var(--ink-soft); font-size: 20px; margin: 16px 0 8px; font-style: italic; }
+  .empty-sub { color: var(--ink-faint); font-size: 15px; margin-bottom: 24px; }
+
+  .alert-list { display: flex; flex-direction: column; gap: 12px; }
+  .alert-row { background: white; border: 1.5px solid var(--card-border); border-radius: 10px; padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; box-shadow: 0 2px 8px rgba(60,40,20,0.05); }
+  .alert-left { display: flex; align-items: center; gap: 16px; }
+  .alert-emoji { font-size: 36px; line-height: 1; }
+  .alert-name { font-family: 'Playfair Display', serif; color: var(--ink); font-size: 17px; font-weight: 600; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .alert-task { font-size: 15px; font-weight: 600; }
+  .alert-right { display: flex; gap: 8px; }
+
+  .reminder-block { margin-top: 32px; background: white; border: 1.5px solid var(--rule); border-radius: 10px; padding: 24px 28px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .reminder-title { font-family: 'Playfair Display', serif; color: var(--ink); font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+  .reminder-sub { color: var(--ink-soft); font-size: 14px; font-style: italic; }
+
+  .discover-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .tag { border-radius: 3px; padding: 3px 9px; font-family: 'Crimson Pro', serif; font-size: 12px; }
+  .tag-water { background: rgba(79,163,214,0.1); color: #3476a0; }
+  .tag-feed  { background: rgba(127,176,105,0.1); color: var(--green); }
+  .tag-sun   { background: var(--parchment-dark); color: var(--ink-soft); }
+  .card-notes { color: var(--ink-soft); font-size: 13px; margin-bottom: 18px; line-height: 1.65; font-style: italic; border-left: 2px solid var(--rule); padding-left: 10px; }
+  .difficulty-badge { background: var(--parchment-dark); color: var(--ink-soft); border-radius: 3px; padding: 2px 8px; font-family: 'Crimson Pro', serif; font-size: 11px; }
+
+  .detail-card { background: white; border: 1.5px solid var(--card-border); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(60,40,20,0.08); }
+  .detail-top-bar { height: 6px; }
+  .detail-body { padding: 28px 32px; }
+  .detail-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+  .detail-hero { display: flex; align-items: center; gap: 20px; }
+  .detail-emoji { font-size: 64px; line-height: 1; }
+  .detail-title { font-family: 'Playfair Display', serif; color: var(--ink); font-size: 32px; font-weight: 700; margin-bottom: 8px; line-height: 1; }
+  .detail-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .detail-notes { background: #f9f7f4; border: 1px solid var(--card-border); border-radius: 8px; padding: 16px 20px; margin-bottom: 28px; color: var(--ink-mid); font-size: 15px; line-height: 1.75; font-style: italic; }
+  .care-section-title { font-family: 'Playfair Display', serif; color: var(--ink); font-size: 16px; margin-bottom: 16px; letter-spacing: 0.5px; }
+  .detail-care-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+  .detail-care-box { border-radius: 10px; padding: 20px 22px; border: 1.5px solid transparent; transition: transform 0.2s; }
+  .detail-care-box:hover { transform: scale(1.02); }
+  .detail-care-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .detail-care-label { font-family: 'Playfair Display', serif; color: var(--ink); font-size: 15px; }
+  .detail-care-days { font-family: 'Playfair Display', serif; font-size: 34px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .detail-care-interval { color: var(--ink-soft); font-size: 13px; margin-bottom: 16px; font-style: italic; }
+
+  .custom-form-wrap { background: white; border: 1.5px solid var(--card-border); border-radius: 12px; overflow: hidden; margin-bottom: 32px; }
+  .custom-form-header { background: var(--forest); padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .custom-form-header-title { color: #d8eacc; font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  .custom-form-header-sub { color: rgba(216,234,204,0.6); font-size: 13px; font-style: italic; }
+  .custom-form-chevron { color: #7fb069; font-size: 18px; transition: transform 0.3s; }
+  .custom-form-chevron.open { transform: rotate(180deg); }
+  .custom-form-body { padding: 24px; border-top: 1px solid var(--card-border); display: none; }
+  .custom-form-body.open { display: block; animation: fadeUp 0.3s ease both; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .form-field { display: flex; flex-direction: column; gap: 6px; }
+  .form-field.full { grid-column: 1 / -1; }
+  .form-label { font-family: 'Playfair Display', serif; color: var(--ink-mid); font-size: 13px; font-weight: 600; letter-spacing: 0.3px; }
+  .form-input { background: var(--parchment); border: 1.5px solid var(--rule); border-radius: 6px; padding: 9px 12px; font-family: 'Crimson Pro', Georgia, serif; font-size: 14px; color: var(--ink); transition: border-color 0.2s; outline: none; width: 100%; }
+  .form-input:focus { border-color: var(--green); }
+  .form-select { background: var(--parchment); border: 1.5px solid var(--rule); border-radius: 6px; padding: 9px 12px; font-family: 'Crimson Pro', Georgia, serif; font-size: 14px; color: var(--ink); outline: none; width: 100%; cursor: pointer; transition: border-color 0.2s; }
+  .form-select:focus { border-color: var(--green); }
+  .form-textarea { background: var(--parchment); border: 1.5px solid var(--rule); border-radius: 6px; padding: 9px 12px; font-family: 'Crimson Pro', Georgia, serif; font-size: 14px; color: var(--ink); outline: none; width: 100%; resize: vertical; min-height: 72px; transition: border-color 0.2s; }
+  .form-textarea:focus { border-color: var(--green); }
+  .emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+  .emoji-btn { background: var(--parchment); border: 1.5px solid var(--rule); border-radius: 6px; padding: 7px; font-size: 20px; cursor: pointer; text-align: center; transition: all 0.15s; line-height: 1; }
+  .emoji-btn:hover { border-color: var(--green); background: white; transform: scale(1.1); }
+  .emoji-btn.selected { border-color: var(--green); background: rgba(61,131,97,0.08); box-shadow: 0 0 0 2px rgba(61,131,97,0.2); }
+  .form-error { color: #c0392b; font-size: 13px; font-style: italic; margin-top: 4px; display: none; }
+  .form-error.show { display: block; }
+  .custom-badge { background: rgba(61,131,97,0.1); color: var(--green); border-radius: 3px; padding: 2px 7px; font-family: 'Crimson Pro', serif; font-weight: 600; font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; }
+
+
+  /* ── Push notification panel ── */
+  .push-panel { background: white; border: 1.5px solid var(--card-border); border-radius: 10px; padding: 24px 28px; margin-bottom: 24px; }
+  .push-panel-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .push-icon { width: 44px; height: 44px; background: var(--forest); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .push-title { font-family: "Playfair Display", serif; color: var(--ink); font-size: 17px; font-weight: 600; margin-bottom: 3px; }
+  .push-sub { color: var(--ink-soft); font-size: 13px; font-style: italic; }
+  .push-status { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-radius: 7px; margin-bottom: 18px; border: 1.5px solid var(--rule); background: var(--parchment); font-size: 14px; }
+  .push-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .push-dot.granted  { background: #3d8361; box-shadow: 0 0 0 3px rgba(61,131,97,0.2); }
+  .push-dot.denied   { background: #c0392b; box-shadow: 0 0 0 3px rgba(192,57,43,0.2); }
+  .push-dot.default  { background: #d47c0f; box-shadow: 0 0 0 3px rgba(212,124,15,0.2); }
+  .push-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .push-schedule { background: var(--parchment); border: 1.5px solid var(--rule); border-radius: 8px; padding: 16px 18px; margin-top: 16px; }
+  .push-schedule-title { font-family: "Playfair Display", serif; font-size: 14px; color: var(--ink); margin-bottom: 12px; }
+  .push-time-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .push-time-label { font-size: 13px; color: var(--ink-mid); }
+  .push-time-input { background: white; border: 1.5px solid var(--rule); border-radius: 5px; padding: 6px 10px; font-family: "Crimson Pro", serif; font-size: 14px; color: var(--ink); outline: none; transition: border-color 0.2s; }
+  .push-time-input:focus { border-color: var(--green); }
+  .push-howto { margin-top: 16px; background: rgba(61,131,97,0.06); border: 1px solid rgba(61,131,97,0.2); border-radius: 7px; padding: 14px 16px; }
+  .push-howto-title { font-family: "Playfair Display", serif; font-size: 13px; color: var(--green); font-weight: 600; margin-bottom: 8px; }
+  .push-howto ol { padding-left: 18px; }
+  .push-howto li { font-size: 13px; color: var(--ink-mid); line-height: 1.7; }
+  .push-howto li strong { color: var(--ink); font-weight: 600; }
+
+  #toast { position: fixed; top: 24px; right: 24px; z-index: 9999; background: #2d5a3d; color: var(--parchment); padding: 13px 22px; border-radius: 6px; box-shadow: 0 8px 32px rgba(40,30,20,0.25); font-size: 14px; letter-spacing: 0.3px; animation: toastIn 0.3s cubic-bezier(0.22,1,0.36,1) both; display: none; }
+  #toast.warn { background: #8b5e2a; }
+  #toast.show { display: block; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+
+  /* ── View toggle ── */
+  .view-toggle { display:flex; gap:4px; background:white; border:1.5px solid var(--rule); border-radius:6px; padding:3px; }
+  .vt-btn { background:transparent; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-size:14px; color:var(--ink-soft); transition:all 0.18s; line-height:1; }
+  .vt-btn:hover { color:var(--ink); }
+  .vt-btn.active { background:var(--forest); color:#d8eacc; }
+
+  /* ── List view ── */
+  .plant-list { display:flex; flex-direction:column; gap:10px; }
+  .list-row { background:white; border:1.5px solid var(--card-border); border-radius:10px; overflow:hidden; cursor:pointer; display:flex; align-items:center; gap:0; transition:box-shadow 0.2s, transform 0.2s; }
+  .list-row:hover { transform:translateX(3px); box-shadow:0 4px 18px rgba(60,40,20,0.1); }
+  .list-accent { width:5px; align-self:stretch; flex-shrink:0; }
+  .list-emoji { font-size:28px; padding:14px 16px; flex-shrink:0; line-height:1; }
+  .list-main { flex:1; padding:12px 0; min-width:0; }
+  .list-name { font-family:"Playfair Display",serif; font-size:16px; font-weight:600; color:var(--ink); margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .list-meta { font-size:12px; color:var(--ink-faint); font-style:italic; }
+  .list-badges { display:flex; gap:6px; align-items:center; padding:14px 16px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
+  .list-pill { border-radius:4px; padding:4px 10px; font-family:"Crimson Pro",serif; font-size:12px; font-weight:700; white-space:nowrap; }
+
+  /* ── Chart view ── */
+  .chart-view { display:flex; flex-direction:column; gap:24px; }
+  .chart-section { background:white; border:1.5px solid var(--card-border); border-radius:10px; padding:22px 24px; }
+  .chart-title { font-family:"Playfair Display",serif; font-size:15px; font-weight:600; color:var(--ink); margin-bottom:18px; }
+  .bar-row { display:flex; align-items:center; gap:12px; margin-bottom:10px; cursor:pointer; transition:opacity 0.15s; }
+  .bar-row:hover { opacity:0.8; }
+  .bar-label { width:120px; flex-shrink:0; font-size:13px; color:var(--ink-mid); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:6px; }
+  .bar-track { flex:1; background:var(--parchment-dark); border-radius:4px; height:22px; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:4px; transition:width 0.6s cubic-bezier(0.34,1.2,0.64,1); display:flex; align-items:center; padding-left:8px; }
+  .bar-val { font-size:11px; font-weight:700; color:white; white-space:nowrap; }
+  .bar-days { width:52px; flex-shrink:0; font-size:12px; text-align:right; font-weight:600; }
+
+  .donut-row { display:flex; gap:28px; align-items:center; flex-wrap:wrap; }
+  .donut-wrap { position:relative; width:140px; height:140px; flex-shrink:0; }
+  .donut-wrap svg { width:140px; height:140px; }
+  .donut-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .donut-num { font-family:"Playfair Display",serif; font-size:26px; font-weight:700; color:var(--ink); line-height:1; }
+  .donut-label { font-size:11px; color:var(--ink-faint); margin-top:2px; }
+  .legend-list { display:flex; flex-direction:column; gap:8px; }
+  .legend-item { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-mid); cursor:pointer; }
+  .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .legend-name { flex:1; }
+  .legend-count { font-weight:600; color:var(--ink); }
+
+  .health-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
+  .health-card { background:var(--parchment); border-radius:8px; padding:14px 16px; cursor:pointer; transition:transform 0.2s; border:1.5px solid var(--card-border); }
+  .health-card:hover { transform:translateY(-2px); }
+  .health-top { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .health-emoji { font-size:22px; line-height:1; }
+  .health-name { font-family:"Playfair Display",serif; font-size:14px; font-weight:600; color:var(--ink); }
+  .health-bar-wrap { background:var(--rule); border-radius:3px; height:6px; overflow:hidden; }
+  .health-bar-fill { height:100%; border-radius:3px; transition:width 0.5s ease; }
+  .health-score-row { display:flex; justify-content:space-between; margin-top:6px; font-size:11px; color:var(--ink-faint); }
+  @media (max-width: 600px) {
+    .header-inner { padding: 0 16px; }
+    main { padding: 24px 16px 40px; }
+    .detail-care-grid, .plant-grid, .discover-grid { grid-template-columns: 1fr; }
+    .detail-hero { flex-direction: column; align-items: flex-start; }
+    .bar-label { width:80px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<header id="header">
+  <div class="header-inner">
+    <div class="logo-wrap">
+      <span class="logo-emoji">🌿</span>
+      <div>
+        <div class="logo-title display">Garden Keeper</div>
+        <div class="logo-sub">Your botanical journal</div>
+      </div>
+    </div>
+    <nav>
+      <button class="nav-btn active" data-view="dashboard"><span class="nav-icon">⬡</span> My Garden</button>
+      <button class="nav-btn" data-view="alerts"><span class="nav-icon">◇</span> Alerts <span class="nav-badge" id="nav-badge" style="display:none"></span></button>
+      <button class="nav-btn" data-view="discover"><span class="nav-icon">✦</span> Discover</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div id="view-dashboard" class="view active">
+    <div class="section-head">
+      <div>
+        <h1 class="section-title display">My Garden</h1>
+        <p class="section-sub" id="dash-sub"></p>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="view-toggle" id="view-toggle">
+          <button class="vt-btn active" data-mode="grid" title="Grid">⊞</button>
+          <button class="vt-btn" data-mode="list" title="List">☰</button>
+          <button class="vt-btn" data-mode="chart" title="Chart">◎</button>
+        </div>
+        <button class="btn-primary" onclick="navigateTo('discover')">+ Add Plants</button>
+      </div>
+    </div>
+    <hr class="rule">
+    <div class="filters" id="dash-filters"></div>
+    <div id="dash-content"></div>
+  </div>
+
+  <div id="view-alerts" class="view">
+    <div>
+      <h1 class="section-title display">Alerts</h1>
+      <p class="section-sub" id="alerts-sub"></p>
+    </div>
+    <hr class="rule" style="margin-bottom:24px">
+    <div id="alerts-content"></div>
+    <!-- Push notification panel -->
+    <div class="push-panel" id="push-panel">
+      <div class="push-panel-head">
+        <div class="push-icon">🔔</div>
+        <div>
+          <div class="push-title display">Phone Alerts</div>
+          <div class="push-sub">Get notified on your phone when plants need care</div>
+        </div>
+      </div>
+      <div class="push-status" id="push-status-row">
+        <span class="push-dot default" id="push-dot"></span>
+        <span id="push-status-text">Checking notification status…</span>
+      </div>
+      <div class="push-actions">
+        <button class="btn-primary" id="btn-enable-push">Enable phone alerts</button>
+        <button class="btn-ghost" id="btn-test-push" style="display:none">Send test alert</button>
+      </div>
+      <div class="push-schedule" id="push-schedule" style="display:none">
+        <div class="push-schedule-title display">Daily check time</div>
+        <div class="push-time-row">
+          <span class="push-time-label">Send daily plant check at</span>
+          <input class="push-time-input" type="time" id="push-time" value="08:00">
+          <button class="btn-primary" id="btn-save-time" style="padding:7px 16px;font-size:13px">Save</button>
+        </div>
+        <p style="font-size:12px;color:var(--ink-faint);margin-top:8px;font-style:italic">The app will check for due tasks each day and alert you if anything needs attention.</p>
+      </div>
+      <div class="push-howto" id="push-howto" style="display:none">
+        <div class="push-howto-title">📱 To get alerts on your phone</div>
+        <ol>
+          <li>Open this file in your phone browser (Safari on iPhone, Chrome on Android)</li>
+          <li>Tap <strong>Share</strong> → <strong>Add to Home Screen</strong></li>
+          <li>Open the app from your home screen and tap <strong>Enable phone alerts</strong></li>
+          <li>Allow notifications when your browser asks</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="reminder-block">
+      <div>
+        <div class="reminder-title display">Schedule All Reminders</div>
+        <p class="reminder-sub">Set recurring reminders for every plant in your garden.</p>
+      </div>
+      <button class="btn-primary" id="btn-set-all">🔔 Set All Reminders</button>
+    </div>
+  </div>
+
+  <div id="view-discover" class="view">
+    <div class="section-head">
+      <div>
+        <h1 class="section-title display">Discover Plants</h1>
+        <p class="section-sub">Find your next green companion</p>
+      </div>
+    </div>
+    <hr class="rule">
+
+    <div class="custom-form-wrap">
+      <div class="custom-form-header" id="custom-form-toggle">
+        <div>
+          <div class="custom-form-header-title">✦ Add a Custom Plant</div>
+          <div class="custom-form-header-sub">Create your own entry for any plant, herb, or crop</div>
+        </div>
+        <span class="custom-form-chevron" id="custom-form-chevron">&#9662;</span>
+      </div>
+      <div class="custom-form-body" id="custom-form-body">
+        <div class="form-grid">
+          <div class="form-field">
+            <label class="form-label">Plant name *</label>
+            <input class="form-input" id="cf-name" type="text" placeholder="e.g. Fiddle Leaf Fig" maxlength="40">
+            <span class="form-error" id="cf-name-err">Please enter a plant name</span>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Category *</label>
+            <select class="form-select" id="cf-category">
+              <option value="">Choose one...</option>
+              <option value="houseplant">Houseplant</option>
+              <option value="flower">Flower</option>
+              <option value="vegetable">Vegetable / Herb</option>
+            </select>
+            <span class="form-error" id="cf-cat-err">Please choose a category</span>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Water every (days) *</label>
+            <input class="form-input" id="cf-water" type="number" min="1" max="90" placeholder="e.g. 3">
+            <span class="form-error" id="cf-water-err">Enter a number between 1-90</span>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Fertilize every (days) *</label>
+            <input class="form-input" id="cf-fert" type="number" min="1" max="365" placeholder="e.g. 14">
+            <span class="form-error" id="cf-fert-err">Enter a number between 1-365</span>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Sunlight needs</label>
+            <select class="form-select" id="cf-sun">
+              <option value="Full Sun">Full Sun</option>
+              <option value="Partial Shade">Partial Shade</option>
+              <option value="Bright Indirect">Bright Indirect</option>
+              <option value="Low Light">Low Light</option>
+              <option value="Any Light">Any Light</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Difficulty</label>
+            <select class="form-select" id="cf-diff">
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+              <option value="Hard">Hard</option>
+            </select>
+          </div>
+          <div class="form-field full">
+            <label class="form-label">Care notes</label>
+            <textarea class="form-textarea" id="cf-notes" placeholder="Any tips or reminders for this plant..." maxlength="200"></textarea>
+          </div>
+          <div class="form-field full">
+            <label class="form-label">Pick an emoji</label>
+            <div class="emoji-grid" id="cf-emoji-grid"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+          <button class="btn-ghost" id="cf-cancel">Cancel</button>
+          <button class="btn-primary" id="cf-submit">+ Add to Garden</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="filters" id="discover-filters"></div>
+    <div id="discover-content" class="discover-grid"></div>
+  </div>
+
+  <div id="view-detail" class="view">
+    <button class="btn-ghost" style="margin-bottom:20px" onclick="navigateTo('dashboard')">← Back to Garden</button>
+    <div id="detail-content"></div>
+  </div>
+</main>
+
+<script>
+const PLANTS = [
+  { id:1,  name:"Basil",       emoji:"🌿", category:"vegetable",  waterDays:2,  fertilizeDays:14, sunlight:"Full Sun",        difficulty:"Easy",   notes:"Keep soil moist. Pinch flowers to encourage leaf growth." },
+  { id:2,  name:"Tomatoes",    emoji:"🍅", category:"vegetable",  waterDays:1,  fertilizeDays:7,  sunlight:"Full Sun",        difficulty:"Medium", notes:"Stake when tall. Water at base to prevent disease." },
+  { id:3,  name:"Lavender",    emoji:"💜", category:"flower",     waterDays:7,  fertilizeDays:30, sunlight:"Full Sun",        difficulty:"Easy",   notes:"Drought tolerant. Excellent for pollinators." },
+  { id:4,  name:"Mint",        emoji:"🌱", category:"vegetable",  waterDays:2,  fertilizeDays:21, sunlight:"Partial Shade",   difficulty:"Easy",   notes:"Grows aggressively. Best kept in containers." },
+  { id:5,  name:"Roses",       emoji:"🌹", category:"flower",     waterDays:3,  fertilizeDays:14, sunlight:"Full Sun",        difficulty:"Hard",   notes:"Prune in early spring. Watch for aphids." },
+  { id:6,  name:"Succulents",  emoji:"🪴", category:"houseplant", waterDays:14, fertilizeDays:60, sunlight:"Bright Indirect", difficulty:"Easy",   notes:"Allow soil to dry completely between waterings." },
+  { id:7,  name:"Pothos",      emoji:"🍃", category:"houseplant", waterDays:7,  fertilizeDays:30, sunlight:"Low Light",       difficulty:"Easy",   notes:"Extremely forgiving. Tolerates low light and irregular watering." },
+  { id:8,  name:"Peace Lily",  emoji:"🌼", category:"houseplant", waterDays:5,  fertilizeDays:21, sunlight:"Low Light",       difficulty:"Easy",   notes:"Droops when thirsty — great self-watering signal. Keep away from pets." },
+  { id:9,  name:"Sunflower",   emoji:"🌻", category:"flower",     waterDays:3,  fertilizeDays:14, sunlight:"Full Sun",        difficulty:"Easy",   notes:"Follow the sun when young. Deep water to encourage strong roots." },
+  { id:10, name:"Lettuce",     emoji:"🥬", category:"vegetable",  waterDays:1,  fertilizeDays:14, sunlight:"Partial Shade",   difficulty:"Easy",   notes:"Harvest outer leaves regularly. Bolt-resistant in cool weather." },
+  { id:11, name:"Orchid",      emoji:"🌸", category:"flower",     waterDays:7,  fertilizeDays:14, sunlight:"Bright Indirect", difficulty:"Hard",   notes:"Water by soaking roots, then drain fully. Needs high humidity." },
+  { id:12, name:"Snake Plant", emoji:"🌵", category:"houseplant", waterDays:14, fertilizeDays:60, sunlight:"Any Light",       difficulty:"Easy",   notes:"Nearly indestructible. Excellent air purifier. Avoid overwatering." },
+];
+
+const CATEGORIES = [
+  { id:"all",        label:"All",         icon:"✦" },
+  { id:"houseplant", label:"Houseplants", icon:"🏠" },
+  { id:"flower",     label:"Flowers",     icon:"🌸" },
+  { id:"vegetable",  label:"Vegetables",  icon:"🥬" },
+];
+
+const CAT_META = {
+  houseplant: { icon:"🏠", label:"Houseplant", accent:"#7fb069", light:"rgba(127,176,105,0.12)" },
+  flower:     { icon:"🌸", label:"Flower",     accent:"#e07a5f", light:"rgba(224,122,95,0.12)"  },
+  vegetable:  { icon:"🥬", label:"Vegetable",  accent:"#3d8361", light:"rgba(61,131,97,0.12)"   },
+};
+
+const URGENCY = {
+  overdue: { color:"#c0392b", bg:"#fdf0ed", label:"Overdue" },
+  today:   { color:"#d47c0f", bg:"#fdf8ed", label:"Today"   },
+  soon:    { color:"#6a7c1a", bg:"#f7f9ed", label:"Soon"    },
+  ok:      { color:"#3d8361", bg:"#edf7f2", label:"OK"      },
+};
+
+let myPlants = [
+  { ...PLANTS[0], addedDate:new Date(Date.now()-5*86400000).toISOString(),  lastWatered:new Date(Date.now()-1*86400000).toISOString(),  lastFertilized:new Date(Date.now()-10*86400000).toISOString() },
+  { ...PLANTS[2], addedDate:new Date(Date.now()-20*86400000).toISOString(), lastWatered:new Date(Date.now()-6*86400000).toISOString(),  lastFertilized:new Date(Date.now()-25*86400000).toISOString() },
+  { ...PLANTS[6], addedDate:new Date(Date.now()-30*86400000).toISOString(), lastWatered:new Date(Date.now()-6*86400000).toISOString(),  lastFertilized:new Date(Date.now()-28*86400000).toISOString() },
+];
+
+let currentView = "dashboard";
+let selectedPlantId = null;
+let dashFilter = "all";
+let discoverFilter = "all";
+let reminderStatus = {};
+let toastTimer = null;
+
+function getDaysUntil(lastDate, intervalDays) {
+  const next = new Date(new Date(lastDate).getTime() + intervalDays * 86400000);
+  return Math.ceil((next - new Date()) / 86400000);
+}
+function getUrgency(days) {
+  return days <= 0 ? "overdue" : days === 1 ? "today" : days <= 3 ? "soon" : "ok";
+}
+function getNotifications() {
+  const notifs = [];
+  myPlants.forEach(p => {
+    const w = getDaysUntil(p.lastWatered, p.waterDays);
+    const f = getDaysUntil(p.lastFertilized, p.fertilizeDays);
+    if (w <= 1) notifs.push({ plant:p, type:"water",     days:w });
+    if (f <= 3) notifs.push({ plant:p, type:"fertilize", days:f });
+  });
+  return notifs;
+}
+
+function showToast(msg, type="success") {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "show" + (type==="warn" ? " warn" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 3000);
+}
+
+function navigateTo(v, plantId) {
+  currentView = v;
+  if (plantId) selectedPlantId = plantId;
+  document.querySelectorAll(".view").forEach(el => el.classList.remove("active"));
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+  const viewEl = document.getElementById("view-" + v);
+  viewEl.classList.add("active");
+  viewEl.classList.remove("page-enter");
+  void viewEl.offsetWidth;
+  viewEl.classList.add("page-enter");
+  const nb = document.querySelector(`[data-view="${v}"]`);
+  if (nb) nb.classList.add("active");
+  renderView(v);
+  window.scrollTo(0, 0);
+}
+
+function updateNavBadge() {
+  const n = getNotifications().length;
+  const b = document.getElementById("nav-badge");
+  b.textContent = n;
+  b.style.display = n > 0 ? "inline-flex" : "none";
+}
+
+function renderView(v) {
+  updateNavBadge();
+  if      (v==="dashboard") renderDashboard();
+  else if (v==="alerts")    { renderAlerts(); initPushPanel(); }
+  else if (v==="discover")  renderDiscover();
+  else if (v==="detail")    renderDetail();
+}
+
+function renderFilters(containerId, active, counts, onChange) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = "";
+  CATEGORIES.forEach(cat => {
+    const btn = document.createElement("button");
+    btn.className = "chip" + (active===cat.id ? " active" : "");
+    btn.innerHTML = `<span>${cat.icon}</span> ${cat.label} <span class="chip-count">${counts[cat.id]??0}</span>`;
+    btn.addEventListener("click", () => onChange(cat.id));
+    el.appendChild(btn);
+  });
+}
+
+let dashViewMode = "grid";
+
+function renderDashboard() {
+  const counts = { all:myPlants.length, ...Object.fromEntries(CATEGORIES.slice(1).map(c=>[c.id, myPlants.filter(p=>p.category===c.id).length])) };
+  renderFilters("dash-filters", dashFilter, counts, id => { dashFilter=id; renderDashboard(); });
+  document.getElementById("dash-sub").textContent = myPlants.length + " " + (myPlants.length===1?"plant":"plants") + " in your care";
+
+  // Wire up view toggle
+  document.querySelectorAll(".vt-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.mode === dashViewMode);
+    btn.onclick = () => { dashViewMode = btn.dataset.mode; renderDashboard(); };
+  });
+
+  const filtered = dashFilter==="all" ? myPlants : myPlants.filter(p=>p.category===dashFilter);
+  const content = document.getElementById("dash-content");
+
+  if (filtered.length === 0 && dashViewMode !== "chart") {
+    content.innerHTML = `<div class="empty-state"><div class="empty-emoji">${dashFilter==="all"?"🌱":(CAT_META[dashFilter]?.icon||"🌱")}</div><p class="empty-title display">Your garden awaits</p><p class="empty-sub">Start by adding some plants to tend</p><button class="btn-primary" onclick="discoverFilter='${dashFilter}';navigateTo('discover')">Browse Plants →</button></div>`;
+    return;
+  }
+
+  content.innerHTML = "";
+
+  if (dashViewMode === "grid") renderGridView(filtered, content);
+  else if (dashViewMode === "list") renderListView(filtered, content);
+  else renderChartView(content);
+}
+
+function renderGridView(filtered, content) {
+  const grid = document.createElement("div");
+  grid.className = "plant-grid";
+  filtered.forEach((plant, idx) => {
+    const wDays = getDaysUntil(plant.lastWatered, plant.waterDays);
+    const fDays = getDaysUntil(plant.lastFertilized, plant.fertilizeDays);
+    const wU = getUrgency(wDays), fU = getUrgency(fDays);
+    const uList = [wU,fU];
+    const topU = uList.includes("overdue")?"overdue":uList.includes("today")?"today":uList.includes("soon")?"soon":"ok";
+    const urg = URGENCY[topU], meta = CAT_META[plant.category];
+    const card = document.createElement("div");
+    card.className = "plant-card";
+    card.style.animationDelay = (idx*0.05)+"s";
+    card.style.animationFillMode = "both";
+    card.innerHTML = `
+      <div class="card-top-bar" style="background:${urg.color};opacity:${topU==="ok"?0.4:1}"></div>
+      <div class="card-body">
+        <div class="card-header">
+          <span class="card-emoji">${plant.emoji}</span>
+          <div class="card-badges">
+            <span class="urgency-badge" style="background:${urg.bg};color:${urg.color}">${urg.label}</span><br>
+            <span class="cat-badge" style="background:${meta.light};color:${meta.accent}">${meta.icon} ${meta.label}</span>
+          </div>
+        </div>
+        <div class="card-name display">${plant.name}</div>
+        <div class="card-sunlight">☀️ ${plant.sunlight}</div>
+        <div class="care-grid">
+          ${[{icon:"💧",label:"Water",days:wDays,u:wU},{icon:"🌾",label:"Feed",days:fDays,u:fU}].map(item=>{
+            const u=URGENCY[item.u];
+            return `<div class="care-box" style="background:${u.bg};border-color:${u.color}22"><div class="care-icon">${item.icon}</div><div class="care-days" style="color:${u.color}">${item.days<=0?"Now!":item.days+"d"}</div><div class="care-label">${item.label}</div></div>`;
+          }).join("")}
+        </div>
+      </div>`;
+    card.addEventListener("click", () => navigateTo("detail", plant.id));
+    grid.appendChild(card);
+  });
+  content.appendChild(grid);
+}
+
+function renderListView(filtered, content) {
+  const list = document.createElement("div");
+  list.className = "plant-list";
+  filtered.forEach((plant, idx) => {
+    const wDays = getDaysUntil(plant.lastWatered, plant.waterDays);
+    const fDays = getDaysUntil(plant.lastFertilized, plant.fertilizeDays);
+    const wU = getUrgency(wDays), fU = getUrgency(fDays);
+    const uList = [wU,fU];
+    const topU = uList.includes("overdue")?"overdue":uList.includes("today")?"today":uList.includes("soon")?"soon":"ok";
+    const urg = URGENCY[topU], meta = CAT_META[plant.category];
+    const row = document.createElement("div");
+    row.className = "list-row";
+    row.style.animationDelay = (idx*0.04)+"s";
+    row.style.animationFillMode = "both";
+    row.innerHTML = `
+      <div class="list-accent" style="background:${urg.color};opacity:${topU==="ok"?0.4:1}"></div>
+      <span class="list-emoji">${plant.emoji}</span>
+      <div class="list-main">
+        <div class="list-name">${plant.name}</div>
+        <div class="list-meta">${meta.icon} ${meta.label} · ☀️ ${plant.sunlight} · ${plant.difficulty}</div>
+      </div>
+      <div class="list-badges">
+        <span class="list-pill" style="background:${urg.bg};color:${urg.color}">${urg.label}</span>
+        <span class="list-pill" style="background:rgba(79,163,214,0.1);color:#3476a0">💧 ${wDays<=0?"Now!":wDays+"d"}</span>
+        <span class="list-pill" style="background:rgba(127,176,105,0.1);color:#3d8361">🌾 ${fDays<=0?"Now!":fDays+"d"}</span>
+      </div>`;
+    row.addEventListener("click", () => navigateTo("detail", plant.id));
+    list.appendChild(row);
+  });
+  content.appendChild(list);
+}
+
+function renderChartView(content) {
+  const allPlants = myPlants;
+  if (allPlants.length === 0) {
+    content.innerHTML = `<div class="empty-state"><div class="empty-emoji">🌱</div><p class="empty-title display">Your garden awaits</p><p class="empty-sub">Add some plants to see your garden stats</p><button class="btn-primary" onclick="navigateTo('discover')">Browse Plants →</button></div>`;
+    return;
+  }
+
+  const wrap = document.createElement("div");
+  wrap.className = "chart-view";
+
+  // ── Section 1: Watering schedule (bar chart sorted soonest first) ──
+  const waterSection = document.createElement("div");
+  waterSection.className = "chart-section";
+  const sortedByWater = [...allPlants].sort((a,b) => getDaysUntil(a.lastWatered,a.waterDays) - getDaysUntil(b.lastWatered,b.waterDays));
+  const maxW = Math.max(...sortedByWater.map(p => Math.max(0, getDaysUntil(p.lastWatered,p.waterDays))), 1);
+  waterSection.innerHTML = `<div class="chart-title">💧 Watering schedule — days until next water</div>`;
+  sortedByWater.forEach(plant => {
+    const days = getDaysUntil(plant.lastWatered, plant.waterDays);
+    const urg = URGENCY[getUrgency(days)];
+    const pct = days <= 0 ? 100 : Math.round((days / maxW) * 100);
+    const label = days <= 0 ? "Now!" : days + "d";
+    const row = document.createElement("div");
+    row.className = "bar-row";
+    row.innerHTML = `
+      <div class="bar-label"><span style="font-size:16px">${plant.emoji}</span><span style="overflow:hidden;text-overflow:ellipsis">${plant.name}</span></div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${Math.max(pct,4)}%;background:${urg.color}">
+          ${pct > 18 ? `<span class="bar-val">${label}</span>` : ""}
+        </div>
+      </div>
+      <div class="bar-days" style="color:${urg.color}">${pct <= 18 ? label : ""}</div>`;
+    row.addEventListener("click", () => navigateTo("detail", plant.id));
+    waterSection.appendChild(row);
+  });
+
+  // ── Section 2: Fertilize schedule ──
+  const fertSection = document.createElement("div");
+  fertSection.className = "chart-section";
+  const sortedByFert = [...allPlants].sort((a,b) => getDaysUntil(a.lastFertilized,a.fertilizeDays) - getDaysUntil(b.lastFertilized,b.fertilizeDays));
+  const maxF = Math.max(...sortedByFert.map(p => Math.max(0, getDaysUntil(p.lastFertilized,p.fertilizeDays))), 1);
+  fertSection.innerHTML = `<div class="chart-title">🌾 Fertilizing schedule — days until next feed</div>`;
+  sortedByFert.forEach(plant => {
+    const days = getDaysUntil(plant.lastFertilized, plant.fertilizeDays);
+    const urg = URGENCY[getUrgency(days)];
+    const pct = days <= 0 ? 100 : Math.round((days / maxF) * 100);
+    const label = days <= 0 ? "Now!" : days + "d";
+    const row = document.createElement("div");
+    row.className = "bar-row";
+    row.innerHTML = `
+      <div class="bar-label"><span style="font-size:16px">${plant.emoji}</span><span style="overflow:hidden;text-overflow:ellipsis">${plant.name}</span></div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${Math.max(pct,4)}%;background:${urg.color}">
+          ${pct > 18 ? `<span class="bar-val">${label}</span>` : ""}
+        </div>
+      </div>
+      <div class="bar-days" style="color:${urg.color}">${pct <= 18 ? label : ""}</div>`;
+    row.addEventListener("click", () => navigateTo("detail", plant.id));
+    fertSection.appendChild(row);
+  });
+
+  // ── Section 3: Category breakdown (donut) ──
+  const catSection = document.createElement("div");
+  catSection.className = "chart-section";
+  catSection.innerHTML = `<div class="chart-title">Garden breakdown by category</div>`;
+  const catColors = { houseplant:"#7fb069", flower:"#e07a5f", vegetable:"#3d8361" };
+  const catData = CATEGORIES.slice(1).map(c => ({
+    id:c.id, label:c.label, icon:c.icon,
+    count: allPlants.filter(p=>p.category===c.id).length,
+    color: catColors[c.id]
+  })).filter(c=>c.count>0);
+  const total = allPlants.length;
+
+  // Build SVG donut
+  const r = 52, cx = 70, cy = 70, stroke = 22;
+  const circumference = 2 * Math.PI * r;
+  let offset = 0;
+  const segments = catData.map(c => {
+    const frac = c.count / total;
+    const dash = circumference * frac;
+    const seg = { ...c, dash, gap: circumference - dash, offset };
+    offset += dash;
+    return seg;
+  });
+
+  const svgPaths = segments.map((s,i) => {
+    const rot = (s.offset / circumference) * 360 - 90;
+    return `<circle r="${r}" cx="${cx}" cy="${cy}" fill="none" stroke="${s.color}" stroke-width="${stroke}" stroke-dasharray="${s.dash.toFixed(2)} ${s.gap.toFixed(2)}" stroke-dashoffset="0" transform="rotate(${rot.toFixed(1)} ${cx} ${cy})" />`;
+  }).join("");
+
+  const donutRow = document.createElement("div");
+  donutRow.className = "donut-row";
+  donutRow.innerHTML = `
+    <div class="donut-wrap">
+      <svg viewBox="0 0 140 140">${svgPaths}</svg>
+      <div class="donut-center">
+        <span class="donut-num">${total}</span>
+        <span class="donut-label">plants</span>
+      </div>
+    </div>
+    <div class="legend-list">
+      ${catData.map(c=>`
+        <div class="legend-item" onclick="dashFilter='${c.id}';dashViewMode='grid';renderDashboard()">
+          <span class="legend-dot" style="background:${c.color}"></span>
+          <span class="legend-name">${c.icon} ${c.label}</span>
+          <span class="legend-count">${c.count}</span>
+        </div>`).join("")}
+    </div>`;
+  catSection.appendChild(donutRow);
+
+  // ── Section 4: Garden health scores ──
+  const healthSection = document.createElement("div");
+  healthSection.className = "chart-section";
+  healthSection.innerHTML = `<div class="chart-title">Overall plant health</div>`;
+  const healthGrid = document.createElement("div");
+  healthGrid.className = "health-grid";
+
+  allPlants.forEach(plant => {
+    const wDays = getDaysUntil(plant.lastWatered, plant.waterDays);
+    const fDays = getDaysUntil(plant.lastFertilized, plant.fertilizeDays);
+    // health: 100 = both right on time, decreases as overdue
+    const wScore = wDays <= 0 ? Math.max(0, 50 + wDays*10) : Math.min(100, 50 + Math.min(wDays,5)*10);
+    const fScore = fDays <= 0 ? Math.max(0, 50 + fDays*5)  : Math.min(100, 50 + Math.min(fDays,5)*5);
+    const health = Math.round((wScore + fScore) / 2);
+    const hColor = health >= 75 ? "#3d8361" : health >= 45 ? "#d47c0f" : "#c0392b";
+    const card = document.createElement("div");
+    card.className = "health-card";
+    card.innerHTML = `
+      <div class="health-top">
+        <span class="health-emoji">${plant.emoji}</span>
+        <span class="health-name">${plant.name}</span>
+      </div>
+      <div class="health-bar-wrap">
+        <div class="health-bar-fill" style="width:${health}%;background:${hColor}"></div>
+      </div>
+      <div class="health-score-row">
+        <span>Health score</span>
+        <span style="color:${hColor};font-weight:600">${health}%</span>
+      </div>`;
+    card.addEventListener("click", () => navigateTo("detail", plant.id));
+    healthGrid.appendChild(card);
+  });
+  healthSection.appendChild(healthGrid);
+
+  wrap.appendChild(waterSection);
+  wrap.appendChild(fertSection);
+  wrap.appendChild(catSection);
+  wrap.appendChild(healthSection);
+  content.appendChild(wrap);
+}
+
+function renderAlerts() {
+  const notifs = getNotifications();
+  document.getElementById("alerts-sub").textContent = notifs.length===0
+    ? "All plants are happy and healthy"
+    : notifs.length+" task"+(notifs.length>1?"s":"")+" need your attention";
+
+  const content = document.getElementById("alerts-content");
+  if (notifs.length===0) {
+    content.innerHTML = `<div class="empty-state"><div class="empty-emoji">✿</div><p class="empty-title display" style="color:#3d8361">All caught up!</p><p class="empty-sub">Your plants are thriving. Check back soon.</p></div>`;
+  } else {
+    const list = document.createElement("div");
+    list.className = "alert-list";
+    notifs.forEach(notif => {
+      const urg = URGENCY[getUrgency(notif.days)];
+      const meta = CAT_META[notif.plant.category];
+      const taskKey = `${notif.plant.id}-${notif.type}`;
+      const rs = reminderStatus[taskKey];
+      const row = document.createElement("div");
+      row.className = "alert-row";
+      row.style.borderLeftColor = urg.color;
+      row.style.borderLeftWidth = "4px";
+      row.innerHTML = `
+        <div class="alert-left">
+          <span class="alert-emoji">${notif.plant.emoji}</span>
+          <div>
+            <div class="alert-name"><span class="display">${notif.plant.name}</span><span class="cat-badge" style="background:${meta.light};color:${meta.accent}">${meta.label}</span></div>
+            <div class="alert-task" style="color:${urg.color}">${notif.type==="water"?"💧 Needs watering":"🌾 Needs fertilizing"}<span style="color:#8a7a60;font-weight:400">${notif.days<=0?" — overdue":notif.days===1?" — today":` — in ${notif.days} days`}</span></div>
+          </div>
+        </div>
+        <div class="alert-right">
+          <button class="btn-done" style="background:${urg.color};color:white;border:none;padding:9px 20px;border-radius:5px;cursor:pointer;font-family:'Crimson Pro',serif;font-size:14px;font-weight:600;letter-spacing:0.3px" data-plant="${notif.plant.id}" data-task="${notif.type}">Done ✓</button>
+          <button class="btn-remind btn-ghost" style="font-size:13px;padding:9px 16px;${rs==='done'?'background:#edf7f2;color:#3d8361;border-color:#3d8361':''}" data-plant-id="${notif.plant.id}" data-task-key="${taskKey}">${rs==="loading"?"⟳":rs==="done"?"✓ Set":"🔔 Remind"}</button>
+        </div>`;
+      list.appendChild(row);
+    });
+    content.innerHTML = "";
+    content.appendChild(list);
+    content.querySelectorAll(".btn-done").forEach(btn => btn.addEventListener("click", () => markDone(parseInt(btn.dataset.plant), btn.dataset.task)));
+    content.querySelectorAll(".btn-remind").forEach(btn => btn.addEventListener("click", () => {
+      const p = myPlants.find(p=>p.id===parseInt(btn.dataset.plantId));
+      if (p) setReminder(p, btn.dataset.taskKey);
+    }));
+  }
+
+  const setAllBtn = document.getElementById("btn-set-all");
+  setAllBtn.textContent = `🔔 Set All (${myPlants.length*2} reminders)`;
+  setAllBtn.onclick = async () => {
+    try {
+      const d = new Date(); d.setHours(8,0,0,0);
+      const reminders = myPlants.flatMap(p=>[
+        { title:`${p.emoji} Water your ${p.name}`, notes:p.notes, dueDate:d.toISOString(), dueDateIncludesTime:true, priority:"medium", recurrence:{ frequency:"daily", interval:p.waterDays, rrule:`FREQ=DAILY;INTERVAL=${p.waterDays}`, humanReadableFrequency:`Every ${p.waterDays} day${p.waterDays>1?"s":""}` }},
+        { title:`${p.emoji} Fertilize your ${p.name}`, notes:p.notes, dueDate:d.toISOString(), dueDateIncludesTime:true, priority:"low", recurrence:{ frequency:"daily", interval:p.fertilizeDays, rrule:`FREQ=DAILY;INTERVAL=${p.fertilizeDays}`, humanReadableFrequency:`Every ${p.fertilizeDays} days` }}
+      ]);
+      if (typeof reminder_create_v0!=="undefined") await reminder_create_v0({ reminderLists:[{ reminders }] });
+      showToast(`🔔 ${reminders.length} reminders scheduled!`);
+    } catch { showToast("Couldn't set reminders","warn"); }
+  };
+}
+
+function renderDiscover() {
+  const counts = { all:PLANTS.length, ...Object.fromEntries(CATEGORIES.slice(1).map(c=>[c.id, PLANTS.filter(p=>p.category===c.id).length])) };
+  renderFilters("discover-filters", discoverFilter, counts, id => { discoverFilter=id; renderDiscover(); });
+
+  const filtered = discoverFilter==="all" ? PLANTS : PLANTS.filter(p=>p.category===discoverFilter);
+  const content = document.getElementById("discover-content");
+  content.innerHTML = "";
+
+  filtered.forEach(plant => {
+    const owned = !!myPlants.find(p=>p.id===plant.id);
+    const meta = CAT_META[plant.category];
+    const card = document.createElement("div");
+    card.className = "plant-card" + (owned?" owned":"");
+    card.innerHTML = `
+      <div class="card-top-bar" style="background:${meta.accent};opacity:0.5"></div>
+      <div class="card-body">
+        <div class="card-header">
+          <span style="font-size:44px;line-height:1">${plant.emoji}</span>
+          <div style="text-align:right">
+            <span class="cat-badge" style="background:${meta.light};color:${meta.accent};display:block;margin-bottom:5px">${meta.label}</span>
+            <span class="difficulty-badge">${plant.difficulty}</span>
+          </div>
+        </div>
+        <div class="card-name display">${plant.name}</div>
+        <div class="discover-tags">
+          <span class="tag tag-water">💧 ${plant.waterDays}d</span>
+          <span class="tag tag-feed">🌾 ${plant.fertilizeDays}d</span>
+          <span class="tag tag-sun">☀️ ${plant.sunlight}</span>
+        </div>
+        <p class="card-notes">${plant.notes}</p>
+        <button style="width:100%;background:${owned?"transparent":"#3d8361"};color:${owned?"#b0a08a":"#f5f0e8"};border:${owned?"1.5px solid #d4c9b5":"none"};border-radius:5px;padding:10px;font-family:'Crimson Pro',Georgia,serif;font-size:14px;font-weight:600;cursor:${owned?"default":"pointer"};letter-spacing:0.3px;transition:all 0.2s" class="add-btn" data-id="${plant.id}" ${owned?"disabled":""}>
+          ${owned?"✓ In Your Garden":"+ Add to Garden"}
+        </button>
+      </div>`;
+    content.appendChild(card);
+  });
+
+  content.querySelectorAll(".add-btn:not([disabled])").forEach(btn => {
+    btn.addEventListener("click", e => { e.stopPropagation(); const p=PLANTS.find(p=>p.id===parseInt(btn.dataset.id)); if(p) addPlant(p); });
+    btn.addEventListener("mouseenter", () => { btn.style.background="#2d6248"; });
+    btn.addEventListener("mouseleave", () => { btn.style.background="#3d8361"; });
+  });
+}
+
+function renderDetail() {
+  const plant = myPlants.find(p=>p.id===selectedPlantId);
+  if (!plant) { navigateTo("dashboard"); return; }
+
+  const wDays = getDaysUntil(plant.lastWatered, plant.waterDays);
+  const fDays = getDaysUntil(plant.lastFertilized, plant.fertilizeDays);
+  const meta = CAT_META[plant.category];
+  const rKey = `${plant.id}-all`;
+  const rs = reminderStatus[rKey];
+
+  const content = document.getElementById("detail-content");
+  content.innerHTML = `
+    <div class="detail-card">
+      <div class="detail-top-bar" style="background:linear-gradient(90deg,${meta.accent},${meta.accent}88)"></div>
+      <div class="detail-body">
+        <div class="detail-header">
+          <div class="detail-hero">
+            <span class="detail-emoji">${plant.emoji}</span>
+            <div>
+              <h2 class="detail-title display">${plant.name}</h2>
+              <div class="detail-meta">
+                <span class="cat-badge" style="background:${meta.light};color:${meta.accent};padding:4px 12px;font-size:13px">${meta.icon} ${meta.label}</span>
+                <span style="color:#8a7a60;font-size:14px;font-style:italic">☀️ ${plant.sunlight} · ${plant.difficulty}</span>
+              </div>
+            </div>
+          </div>
+          <button class="btn-danger" id="btn-remove">Remove Plant</button>
+        </div>
+        <div class="detail-notes">"${plant.notes}"</div>
+        <hr class="rule" style="margin-bottom:16px">
+        <div class="care-section-title display">Care Schedule</div>
+        <div class="detail-care-grid" id="detail-care-grid"></div>
+        <button class="btn-primary" id="btn-set-reminder" style="font-size:15px;padding:13px 28px;background:${rs==='done'?'#3d8361':'#2d3d2e'}">
+          ${rs==="loading"?"Setting reminders…":rs==="done"?"✓ Reminders Set!":"🔔 Set Recurring Reminders for "+plant.name}
+        </button>
+      </div>
+    </div>`;
+
+  const careGrid = document.getElementById("detail-care-grid");
+  [
+    { label:"Watering",    icon:"💧", days:wDays, interval:plant.waterDays,    task:"water"     },
+    { label:"Fertilizing", icon:"🌾", days:fDays, interval:plant.fertilizeDays,task:"fertilize" }
+  ].forEach(item => {
+    const urg = URGENCY[getUrgency(item.days)];
+    const box = document.createElement("div");
+    box.className = "detail-care-box";
+    box.style.background = urg.bg;
+    box.style.borderColor = urg.color+"22";
+    box.innerHTML = `
+      <div class="detail-care-header">
+        <span class="detail-care-label display">${item.icon} ${item.label}</span>
+        <span class="urgency-badge" style="background:${urg.color};color:white">${urg.label}</span>
+      </div>
+      <div class="detail-care-days" style="color:${urg.color}">${item.days<=0?"Now!":item.days+"d"}</div>
+      <div class="detail-care-interval">Every ${item.interval} day${item.interval>1?"s":""}</div>
+      <button style="background:${urg.color};color:white;border:none;padding:9px 18px;border-radius:5px;cursor:pointer;font-family:'Crimson Pro',serif;font-size:14px;font-weight:600;letter-spacing:0.3px;transition:all 0.2s" class="btn-done-detail" data-task="${item.task}">Mark Done ✓</button>`;
+    careGrid.appendChild(box);
+  });
+
+  careGrid.querySelectorAll(".btn-done-detail").forEach(btn => btn.addEventListener("click", () => markDone(plant.id, btn.dataset.task)));
+  document.getElementById("btn-remove").addEventListener("click", () => removePlant(plant.id));
+  document.getElementById("btn-set-reminder").addEventListener("click", () => setReminder(plant, rKey));
+}
+
+function markDone(plantId, taskType) {
+  const now = new Date().toISOString();
+  myPlants = myPlants.map(p => p.id!==plantId ? p : { ...p, ...(taskType==="water"?{lastWatered:now}:{lastFertilized:now}) });
+  showToast("Done! Your plant thanks you 🌱");
+  renderView(currentView);
+}
+
+function addPlant(plant) {
+  if (myPlants.find(p=>p.id===plant.id)) { showToast("Already in your garden!","warn"); return; }
+  const now = new Date().toISOString();
+  myPlants = [...myPlants, { ...plant, addedDate:now, lastWatered:now, lastFertilized:now }];
+  showToast(`${plant.emoji} ${plant.name} added!`);
+  navigateTo("dashboard");
+}
+
+function removePlant(plantId) {
+  myPlants = myPlants.filter(p=>p.id!==plantId);
+  showToast("Plant removed from garden");
+  navigateTo("dashboard");
+}
+
+async function setReminder(plant, taskKey) {
+  reminderStatus[taskKey] = "loading";
+  renderView(currentView);
+  try {
+    const d = new Date(); d.setHours(8,0,0,0);
+    if (typeof reminder_create_v0!=="undefined") {
+      await reminder_create_v0({ reminderLists:[{ reminders:[
+        { title:`${plant.emoji} Water your ${plant.name}`, notes:plant.notes, dueDate:d.toISOString(), dueDateIncludesTime:true, priority:"medium", recurrence:{ frequency:"daily", interval:plant.waterDays, rrule:`FREQ=DAILY;INTERVAL=${plant.waterDays}`, humanReadableFrequency:`Every ${plant.waterDays} day${plant.waterDays>1?"s":""}` }},
+        { title:`${plant.emoji} Fertilize your ${plant.name}`, notes:plant.notes, dueDate:d.toISOString(), dueDateIncludesTime:true, priority:"low", recurrence:{ frequency:"daily", interval:plant.fertilizeDays, rrule:`FREQ=DAILY;INTERVAL=${plant.fertilizeDays}`, humanReadableFrequency:`Every ${plant.fertilizeDays} days` }}
+      ]}] });
+    }
+    reminderStatus[taskKey] = "done";
+    showToast(`🔔 Reminders set for ${plant.name}!`);
+  } catch {
+    reminderStatus[taskKey] = "error";
+    showToast("Couldn't set reminder","warn");
+  }
+  renderView(currentView);
+}
+
+
+const PLANT_EMOJIS = ["🌿","🌱","🍀","🌾","🌻","🌹","🌸","🌼","💐","🌺","🌷","🌵","🪴","🍃","🍂","🍁","🎋","🎍","🌲","🌳","🌴","🍄","🌰","🥀","💜","🫚","🫛","🥦","🥬","🥒","🫑","🌽","🍅","🍋","🍊","🍇","🍓","🫐","🍑","🍒"];
+let selectedEmoji = "🌿";
+let customNextId = 1000;
+
+function initCustomForm() {
+  const grid = document.getElementById("cf-emoji-grid");
+  if (!grid || grid.children.length > 0) return;
+  PLANT_EMOJIS.forEach(em => {
+    const btn = document.createElement("button");
+    btn.className = "emoji-btn" + (em === selectedEmoji ? " selected" : "");
+    btn.textContent = em;
+    btn.type = "button";
+    btn.addEventListener("click", () => {
+      selectedEmoji = em;
+      grid.querySelectorAll(".emoji-btn").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+    });
+    grid.appendChild(btn);
+  });
+
+  document.getElementById("custom-form-toggle").addEventListener("click", () => {
+    const body = document.getElementById("custom-form-body");
+    const chev = document.getElementById("custom-form-chevron");
+    const open = body.classList.toggle("open");
+    chev.classList.toggle("open", open);
+  });
+
+  document.getElementById("cf-cancel").addEventListener("click", () => {
+    document.getElementById("custom-form-body").classList.remove("open");
+    document.getElementById("custom-form-chevron").classList.remove("open");
+    resetForm();
+  });
+
+  document.getElementById("cf-submit").addEventListener("click", submitCustomPlant);
+}
+
+function resetForm() {
+  ["cf-name","cf-water","cf-fert","cf-notes"].forEach(id => { const el = document.getElementById(id); if(el) el.value = ""; });
+  const cat = document.getElementById("cf-category"); if(cat) cat.value = "";
+  const sun = document.getElementById("cf-sun"); if(sun) sun.value = "Full Sun";
+  const diff = document.getElementById("cf-diff"); if(diff) diff.value = "Easy";
+  selectedEmoji = "🌿";
+  const grid = document.getElementById("cf-emoji-grid");
+  if (grid) grid.querySelectorAll(".emoji-btn").forEach(b => b.classList.toggle("selected", b.textContent === "🌿"));
+  document.querySelectorAll(".form-error").forEach(e => e.classList.remove("show"));
+}
+
+function submitCustomPlant() {
+  let valid = true;
+
+  const nameEl = document.getElementById("cf-name");
+  const catEl  = document.getElementById("cf-category");
+  const wEl    = document.getElementById("cf-water");
+  const fEl    = document.getElementById("cf-fert");
+
+  const name  = nameEl.value.trim();
+  const cat   = catEl.value;
+  const water = parseInt(wEl.value);
+  const fert  = parseInt(fEl.value);
+  const sun   = document.getElementById("cf-sun").value;
+  const diff  = document.getElementById("cf-diff").value;
+  const notes = document.getElementById("cf-notes").value.trim() || "A custom plant in your garden.";
+
+  const showErr = (id, show) => document.getElementById(id).classList.toggle("show", show);
+
+  if (!name)                             { showErr("cf-name-err",  true);  valid = false; } else showErr("cf-name-err",  false);
+  if (!cat)                              { showErr("cf-cat-err",   true);  valid = false; } else showErr("cf-cat-err",   false);
+  if (!water || water < 1 || water > 90){ showErr("cf-water-err", true);  valid = false; } else showErr("cf-water-err", false);
+  if (!fert  || fert  < 1 || fert > 365){ showErr("cf-fert-err",  true);  valid = false; } else showErr("cf-fert-err",  false);
+
+  if (!valid) return;
+
+  const now = new Date().toISOString();
+  const plant = {
+    id: customNextId++,
+    name, category:cat, emoji:selectedEmoji,
+    waterDays:water, fertilizeDays:fert,
+    sunlight:sun, difficulty:diff, notes,
+    custom: true,
+    addedDate:now, lastWatered:now, lastFertilized:now
+  };
+
+  myPlants = [...myPlants, plant];
+  showToast(selectedEmoji + " " + name + " added to your garden!");
+  document.getElementById("custom-form-body").classList.remove("open");
+  document.getElementById("custom-form-chevron").classList.remove("open");
+  resetForm();
+  navigateTo("dashboard");
+}
+
+
+// ── Push Notifications ──────────────────────────────────────────
+const PUSH_STORAGE_KEY = "gardenkeeper_push";
+const SW_SOURCE = `
+self.addEventListener("push", e => {
+  const d = e.data ? e.data.json() : {};
+  self.registration.showNotification(d.title || "Garden Keeper", {
+    body: d.body || "Your plants need attention!",
+    icon: d.icon || "",
+    badge: d.badge || "",
+    tag: d.tag || "garden",
+    data: d.data || {}
+  });
+});
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  e.waitUntil(clients.matchAll({type:"window"}).then(cs => {
+    if (cs.length) { cs[0].focus(); } else { clients.openWindow("/"); }
+  }));
+});
+self.addEventListener("message", e => {
+  if (e.data && e.data.type === "CHECK_PLANTS") {
+    const plants = e.data.plants || [];
+    const alerts = [];
+    const now = Date.now();
+    plants.forEach(p => {
+      const wNext = new Date(p.lastWatered).getTime() + p.waterDays * 86400000;
+      const fNext = new Date(p.lastFertilized).getTime() + p.fertilizeDays * 86400000;
+      if (wNext <= now) alerts.push(p.emoji + " " + p.name + " needs watering");
+      else if (fNext <= now) alerts.push(p.emoji + " " + p.name + " needs fertilizing");
+    });
+    if (alerts.length) {
+      self.registration.showNotification("🌿 Garden Keeper", {
+        body: alerts.slice(0,3).join("\n") + (alerts.length > 3 ? "\n+" + (alerts.length-3) + " more" : ""),
+        tag: "garden-daily",
+        icon: ""
+      });
+    }
+  }
+});
+`;
+
+let swReg = null;
+let pushCheckInterval = null;
+
+function getPushPrefs() {
+  try { return JSON.parse(localStorage.getItem(PUSH_STORAGE_KEY) || "{}"); } catch { return {}; }
+}
+function savePushPrefs(prefs) {
+  try { localStorage.setItem(PUSH_STORAGE_KEY, JSON.stringify(prefs)); } catch {}
+}
+
+async function registerSW() {
+  if (!("serviceWorker" in navigator)) return null;
+  try {
+    const blob = new Blob([SW_SOURCE], { type: "application/javascript" });
+    const swUrl = URL.createObjectURL(blob);
+    const reg = await navigator.serviceWorker.register(swUrl, { scope: "/" });
+    await navigator.serviceWorker.ready;
+    return reg;
+  } catch(e) { console.warn("SW registration failed:", e); return null; }
+}
+
+async function initPushPanel() {
+  const panel = document.getElementById("push-panel");
+  if (!panel) return;
+
+  const dot        = document.getElementById("push-dot");
+  const statusText = document.getElementById("push-status-text");
+  const enableBtn  = document.getElementById("btn-enable-push");
+  const testBtn    = document.getElementById("btn-test-push");
+  const scheduleEl = document.getElementById("push-schedule");
+  const howtoEl    = document.getElementById("push-howto");
+  const timeInput  = document.getElementById("push-time");
+  const saveTimeBtn= document.getElementById("btn-save-time");
+
+  const prefs = getPushPrefs();
+  if (prefs.time) timeInput.value = prefs.time;
+
+  function setStatus(state) {
+    dot.className = "push-dot " + state;
+    if (state === "granted") {
+      statusText.textContent = "Notifications enabled — your plants will alert you when they need care";
+      enableBtn.textContent  = "✓ Alerts enabled";
+      enableBtn.style.background = "#3d8361";
+      enableBtn.disabled = true;
+      testBtn.style.display  = "inline-flex";
+      scheduleEl.style.display = "block";
+      howtoEl.style.display  = "none";
+      scheduleDailyCheck();
+    } else if (state === "denied") {
+      statusText.textContent = "Notifications blocked. Please allow notifications in your browser settings, then reload.";
+      enableBtn.textContent  = "Notifications blocked";
+      enableBtn.disabled = true;
+      enableBtn.style.opacity = "0.5";
+      howtoEl.style.display  = "none";
+    } else {
+      statusText.textContent = "Not enabled — tap below to allow plant care alerts on this device";
+      enableBtn.textContent  = "Enable phone alerts";
+      enableBtn.disabled = false;
+      enableBtn.style.background = "";
+      enableBtn.style.opacity = "";
+      testBtn.style.display  = "none";
+      scheduleEl.style.display = "none";
+      howtoEl.style.display  = "block";
+    }
+  }
+
+  // Check current permission
+  if (!("Notification" in window)) {
+    statusText.textContent = "Push notifications are not supported in this browser.";
+    dot.className = "push-dot denied";
+    enableBtn.style.display = "none";
+    return;
+  }
+  setStatus(Notification.permission);
+
+  enableBtn.addEventListener("click", async () => {
+    const perm = await Notification.requestPermission();
+    setStatus(perm);
+    if (perm === "granted") {
+      swReg = await registerSW();
+      savePushPrefs({ ...getPushPrefs(), enabled: true });
+      showToast("🔔 Phone alerts enabled!");
+    }
+  });
+
+  testBtn.addEventListener("click", async () => {
+    if (!swReg) swReg = await registerSW();
+    if (swReg && swReg.active) {
+      swReg.active.postMessage({ type: "CHECK_PLANTS", plants: myPlants });
+    } else {
+      // Fallback: direct Notification API
+      new Notification("🌿 Garden Keeper — Test", {
+        body: myPlants.length > 0
+          ? myPlants.slice(0,2).map(p => p.emoji + " " + p.name).join(", ") + " are in your garden"
+          : "Your garden is ready!",
+        tag: "garden-test"
+      });
+    }
+    showToast("Test alert sent!");
+  });
+
+  saveTimeBtn.addEventListener("click", () => {
+    savePushPrefs({ ...getPushPrefs(), time: timeInput.value, enabled: true });
+    scheduleDailyCheck();
+    showToast("⏰ Daily check time saved!");
+  });
+
+  // Re-check if permission was granted before
+  if (Notification.permission === "granted") {
+    swReg = await registerSW();
+    scheduleDailyCheck();
+  }
+}
+
+function scheduleDailyCheck() {
+  if (pushCheckInterval) clearInterval(pushCheckInterval);
+  if (Notification.permission !== "granted") return;
+
+  const prefs = getPushPrefs();
+  const [h, m] = (prefs.time || "08:00").split(":").map(Number);
+
+  // Check every minute if it is the scheduled time
+  pushCheckInterval = setInterval(async () => {
+    const now = new Date();
+    const lastCheck = getPushPrefs().lastCheck;
+    const todayKey = now.toDateString() + "-" + h + ":" + m;
+    if (now.getHours() === h && now.getMinutes() === m && lastCheck !== todayKey) {
+      savePushPrefs({ ...getPushPrefs(), lastCheck: todayKey });
+      if (!swReg) swReg = await registerSW();
+      if (swReg && swReg.active) {
+        swReg.active.postMessage({ type: "CHECK_PLANTS", plants: myPlants });
+      } else {
+        // Direct fallback
+        const notifs = getNotifications();
+        if (notifs.length > 0) {
+          new Notification("🌿 Garden Keeper", {
+            body: notifs.slice(0,3).map(n => n.plant.emoji + " " + n.plant.name + (n.type==="water"?" needs watering":" needs feeding")).join("\n"),
+            tag: "garden-daily"
+          });
+        }
+      }
+    }
+  }, 60000);
+
+  // Also run once on load if overdue
+  setTimeout(async () => {
+    if (Notification.permission === "granted") {
+      const notifs = getNotifications();
+      if (notifs.length > 0 && !getPushPrefs().lastCheck) {
+        if (!swReg) swReg = await registerSW();
+        if (swReg && swReg.active) {
+          swReg.active.postMessage({ type: "CHECK_PLANTS", plants: myPlants });
+        }
+      }
+    }
+  }, 2000);
+}
+// ── End Push Notifications ───────────────────────────────────────
+
+document.querySelectorAll(".nav-btn").forEach(btn => btn.addEventListener("click", () => navigateTo(btn.dataset.view)));
+
+const _origRenderDiscover = renderDiscover;
+renderDiscover = function() {
+  _origRenderDiscover();
+  initCustomForm();
+};
+
+renderView("dashboard");
+</script>
+</body>
+</html>
