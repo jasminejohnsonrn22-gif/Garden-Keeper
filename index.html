@@ -95,11 +95,12 @@
   .plant-card.owned { opacity: 0.7; cursor: default; }
   .plant-card.owned:hover { transform: none; box-shadow: 0 2px 12px rgba(60,40,20,0.07) !important; }
   .card-top-bar { height: 4px; }
-  .card-body { padding: 12px 14px 14px; }
-  .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-  .card-emoji { font-size: 30px; line-height: 1; }
-  .card-badges { text-align: right; }
-  .card-name { font-family: var(--font-display); color: var(--ink); font-size: 15px; font-weight: 600; margin-bottom: 2px; line-height: 1.2; }
+  .card-body { padding: 10px 12px 12px; }
+  .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 6px; }
+  .card-name-row { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+  .card-emoji { font-size: 16px; line-height: 1; flex-shrink: 0; }
+  .card-badges { text-align: right; flex-shrink: 0; }
+  .card-name { font-family: var(--font-display); color: var(--ink); font-size: 14px; font-weight: 600; margin-bottom: 0; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .card-sunlight { color: var(--ink-faint); font-size: 11px; margin-bottom: 8px; font-style: italic; }
 
   .urgency-badge { display: inline-block; border-radius: 3px; padding: 2px 7px; font-size: 10px; font-weight: 700; font-family: var(--font-body); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 3px; }
@@ -413,6 +414,21 @@
   input[type=range].size-slider::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--green); border:2px solid white; box-shadow:0 1px 4px rgba(0,0,0,0.2); cursor:pointer; }
   input[type=range].size-slider::-moz-range-thumb { width:16px; height:16px; border-radius:50%; background:var(--green); border:2px solid white; cursor:pointer; }
 
+  /* ── Name / emoji inline edit ── */
+  .detail-hero-edit { display:none; flex-direction:column; gap:10px; flex:1; }
+  .detail-hero-edit.show { display:flex; }
+  .detail-hero-static { display:flex; align-items:center; gap:16px; flex:1; cursor:pointer; }
+  .detail-hero-static:hover .detail-title { text-decoration:underline; text-decoration-style:dotted; }
+  .detail-edit-hint { font-size:11px; color:var(--ink-faint); font-style:italic; margin-top:2px; }
+  .name-edit-input { font-family:var(--font-display); font-size:24px; font-weight:700; color:var(--ink); background:var(--parchment); border:2px solid var(--green); border-radius:8px; padding:6px 12px; outline:none; width:100%; }
+  .emoji-edit-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:5px; max-height:160px; overflow-y:auto; padding:4px; background:white; border:1.5px solid var(--rule); border-radius:8px; }
+  .emoji-edit-btn { background:transparent; border:1.5px solid transparent; border-radius:5px; font-size:20px; padding:5px; cursor:pointer; text-align:center; line-height:1; transition:all 0.12s; }
+  .emoji-edit-btn:hover { background:var(--parchment-dark); }
+  .emoji-edit-btn.selected { background:rgba(61,131,97,0.1); border-color:var(--green); }
+  .emoji-edit-none { font-size:12px; color:var(--ink-faint); padding:7px 10px; border-radius:5px; border:1.5px solid var(--rule); cursor:pointer; background:var(--parchment); transition:all 0.15s; white-space:nowrap; }
+  .emoji-edit-none.selected { border-color:var(--green); color:var(--green); background:rgba(61,131,97,0.06); }
+  .name-edit-actions { display:flex; gap:8px; }
+
   /* ── Push notification panel ── */
   .push-panel { background: white; border: 1.5px solid var(--card-border); border-radius: 10px; padding: 24px 28px; margin-bottom: 24px; }
   .push-panel-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
@@ -591,7 +607,7 @@
     .section-head > div:last-child { width:100%; display:flex; gap:8px; justify-content:space-between; }
     .plant-grid { grid-template-columns: 1fr 1fr; gap:8px; }
     .plant-card .card-body { padding:9px 10px; }
-    .plant-card .card-emoji { font-size:22px; }
+    .plant-card .card-emoji { font-size:15px; }
     .section-title { font-size:24px; }
     #settings-fab { bottom:76px; }
     #settings-drawer { width:100vw; top:auto; height:85vh; border-radius:18px 18px 0 0; transform:translateY(100%); right:0; }
@@ -607,7 +623,18 @@
 </style>
 </head>
 <body>
-
+<div id="error-banner" style="display:none;position:fixed;top:0;left:0;right:0;background:#c0392b;color:white;padding:12px 16px;z-index:9999;font-family:monospace;font-size:13px;white-space:pre-wrap;word-break:break-all"></div>
+<script>
+window.onerror = function(msg, src, line, col, err) {
+  var b = document.getElementById('error-banner');
+  if(b) { b.style.display='block'; b.textContent = 'ERROR: ' + msg + '\nLine: ' + line + '\n' + (err&&err.stack?err.stack.split('\n').slice(0,3).join('\n'):''); }
+  return false;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  var b = document.getElementById('error-banner');
+  if(b) { b.style.display='block'; b.textContent = 'PROMISE ERROR: ' + (e.reason && e.reason.message || e.reason); }
+});
+</script>
 <div id="toast"></div>
 
 <header id="header">
@@ -701,6 +728,24 @@
       </div>
       <div id="sect-size" class="settings-sect-body" style="display:none">
         <div class="size-sliders" id="size-sliders"></div>
+      </div>
+    </div>
+
+    <!-- Data Backup -->
+    <div class="settings-section">
+      <div class="settings-label settings-collapsible" data-target="sect-backup">
+        <span>Data Backup</span><span class="settings-chevron">▾</span>
+      </div>
+      <div id="sect-backup" class="settings-sect-body" style="display:none">
+        <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;line-height:1.5">Export all your plants, journal photos, grow logs, and locations to a file. Import it after any app update to restore everything.</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn-primary" id="btn-export-data" style="font-size:13px;padding:10px">⬇ Export Garden Data</button>
+          <label class="btn-ghost" id="btn-import-label" style="font-size:13px;padding:10px;text-align:center;cursor:pointer;display:block">
+            ⬆ Import Garden Data
+            <input type="file" id="btn-import-data" accept=".json" style="display:none">
+          </label>
+        </div>
+        <p id="backup-status" style="font-size:12px;color:var(--green);margin-top:8px;font-style:italic;display:none"></p>
       </div>
     </div>
 
@@ -1071,6 +1116,9 @@ let discoverFilter = "all";
 let dashViewMode = _meta.dashViewMode || "grid";
 let reminderStatus = {};
 let toastTimer = null;
+let multiSelectMode = false;
+let selectedPlantIds = new Set();
+let growFormOpen = false;
 
 function getDaysUntil(lastDate, intervalDays) {
   const next = new Date(new Date(lastDate).getTime() + intervalDays * 86400000);
@@ -1191,13 +1239,15 @@ function renderGridView(filtered, content) {
       <div class="card-top-bar" style="background:${urg.color};opacity:${topU==="ok"?0.4:1}"></div>
       <div class="card-body">
         <div class="card-header">
-          ${plant.emoji ? `<span class="card-emoji">${plant.emoji}</span>` : `<span class="card-emoji" style="font-size:22px;opacity:0.25">🌿</span>`}
+          <div class="card-name-row">
+            ${plant.emoji ? `<span class="card-emoji">${plant.emoji}</span>` : ""}
+            <span class="card-name display">${plant.name}</span>
+          </div>
           <div class="card-badges">
             <span class="urgency-badge" style="background:${urg.bg};color:${urg.color}">${urg.label}</span><br>
             <span class="cat-badge" style="background:${meta.light};color:${meta.accent}">${meta.icon} ${meta.label}</span>
           </div>
         </div>
-        <div class="card-name display">${plant.name}</div>
         <div class="card-sunlight">${plant.light==="Grow Light"?"💡":plant.light==="Both"?"☀️💡":"☀️"} ${plant.sunlight}${plant.humidity?" · 💧 "+plant.humidity:""}${plant.location?` <span class="card-location">⌂ ${plant.location}</span>`:""}</div>
         <div class="care-grid">
           ${[{icon:"💧",label:"Water",days:wDays,u:wU},{icon:"🌾",label:"Feed",days:fDays,u:fU}].map(item=>{
@@ -1552,12 +1602,31 @@ function renderDetail() {
       <div class="detail-body">
         <div class="detail-header">
           <div class="detail-hero">
-            <span class="detail-emoji">${plant.emoji || "🌿"}</span>
-            <div>
-              <h2 class="detail-title display">${plant.name}</h2>
-              <div class="detail-meta">
-                <span class="cat-badge" style="background:${meta.light};color:${meta.accent};padding:4px 12px;font-size:13px">${meta.icon} ${meta.label}</span>
-                ${plant.location?`<span style="font-size:13px;color:var(--ink-soft)">⌂ ${getLocationMeta(plant.location).icon} ${getLocationMeta(plant.location).name}</span>`:""}
+            <!-- Static view (tap to edit) -->
+            <div class="detail-hero-static" id="hero-static" title="Tap to edit name or emoji">
+              <span class="detail-emoji" id="hero-emoji-display">${plant.emoji || ""}</span>
+              <div>
+                <h2 class="detail-title display" id="hero-name-display">${plant.name}</h2>
+                <div class="detail-meta">
+                  <span class="cat-badge" style="background:${meta.light};color:${meta.accent};padding:4px 12px;font-size:13px">${meta.icon} ${meta.label}</span>
+                  ${plant.location?`<span style="font-size:13px;color:var(--ink-soft)">⌂ ${getLocationMeta(plant.location).icon} ${getLocationMeta(plant.location).name}</span>`:""}
+                </div>
+                <div class="detail-edit-hint">✏️ Tap to edit name or emoji</div>
+              </div>
+            </div>
+            <!-- Edit form (hidden by default) -->
+            <div class="detail-hero-edit" id="hero-edit">
+              <input class="name-edit-input" id="hero-name-input" type="text" maxlength="40" value="${plant.name}">
+              <div>
+                <div style="font-size:11px;color:var(--ink-soft);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Choose emoji</div>
+                <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
+                  <span class="emoji-edit-none${!plant.emoji?" selected":""}" id="hero-no-emoji">No emoji</span>
+                </div>
+                <div class="emoji-edit-grid" id="hero-emoji-grid"></div>
+              </div>
+              <div class="name-edit-actions">
+                <button class="btn-primary" id="hero-save" style="padding:8px 20px;font-size:13px">Save</button>
+                <button class="btn-ghost" id="hero-cancel" style="padding:8px 16px;font-size:13px">Cancel</button>
               </div>
             </div>
           </div>
@@ -1634,6 +1703,76 @@ function renderDetail() {
 
       </div>
     </div>`;
+
+  // ── Name & emoji inline editing ──
+  const heroStatic    = document.getElementById("hero-static");
+  const heroEdit      = document.getElementById("hero-edit");
+  const heroNameInput = document.getElementById("hero-name-input");
+  const heroEmojiGrid = document.getElementById("hero-emoji-grid");
+  const heroNoEmoji   = document.getElementById("hero-no-emoji");
+  const heroSave      = document.getElementById("hero-save");
+  const heroCancel    = document.getElementById("hero-cancel");
+  const heroEmojiDisplay = document.getElementById("hero-emoji-display");
+  const heroNameDisplay  = document.getElementById("hero-name-display");
+
+  let editingEmoji = plant.emoji || "";
+
+  // Build emoji grid
+  PLANT_EMOJIS.forEach(em => {
+    const btn = document.createElement("button");
+    btn.className = "emoji-edit-btn" + (em === editingEmoji ? " selected" : "");
+    btn.textContent = em;
+    btn.type = "button";
+    btn.addEventListener("click", () => {
+      editingEmoji = em;
+      heroNoEmoji.classList.remove("selected");
+      heroEmojiGrid.querySelectorAll(".emoji-edit-btn").forEach(b => b.classList.toggle("selected", b.textContent === em));
+    });
+    heroEmojiGrid.appendChild(btn);
+  });
+
+  heroNoEmoji.addEventListener("click", () => {
+    editingEmoji = "";
+    heroNoEmoji.classList.add("selected");
+    heroEmojiGrid.querySelectorAll(".emoji-edit-btn").forEach(b => b.classList.remove("selected"));
+  });
+
+  heroStatic.addEventListener("click", () => {
+    heroStatic.style.display = "none";
+    heroEdit.classList.add("show");
+    heroNameInput.focus();
+    heroNameInput.select();
+  });
+
+  heroCancel.addEventListener("click", () => {
+    heroEdit.classList.remove("show");
+    heroStatic.style.display = "";
+    // reset
+    editingEmoji = plant.emoji || "";
+    heroNameInput.value = plant.name;
+    heroEmojiGrid.querySelectorAll(".emoji-edit-btn").forEach(b => b.classList.toggle("selected", b.textContent === editingEmoji));
+    heroNoEmoji.classList.toggle("selected", !editingEmoji);
+  });
+
+  heroSave.addEventListener("click", () => {
+    const newName = heroNameInput.value.trim();
+    if (!newName) { showToast("Name can't be empty", "warn"); return; }
+    myPlants = myPlants.map(p => p.id !== plant.id ? p : { ...p, name: newName, emoji: editingEmoji });
+    savePlants();
+    plant.name  = newName;
+    plant.emoji = editingEmoji;
+    // Update display
+    heroNameDisplay.textContent = newName;
+    heroEmojiDisplay.textContent = editingEmoji;
+    heroEdit.classList.remove("show");
+    heroStatic.style.display = "";
+    showToast("Plant updated ✓");
+    // Refresh page title
+    document.title = newName + " — Garden Keeper";
+  });
+
+  // Allow saving with Enter in name field
+  heroNameInput.addEventListener("keydown", e => { if (e.key === "Enter") heroSave.click(); });
 
   // ── Inline description editing ──
   const descText    = document.getElementById("detail-desc-text");
@@ -1994,13 +2133,15 @@ function renderLocations() {
         <div class="card-top-bar" style="background:${urg.color};opacity:${topU==="ok"?0.4:1}"></div>
         <div class="card-body">
           <div class="card-header">
-            <span class="card-emoji">${plant.emoji || "🌿"}</span>
+            <div class="card-name-row">
+              ${plant.emoji ? `<span class="card-emoji">${plant.emoji}</span>` : ""}
+              <span class="card-name display">${plant.name}</span>
+            </div>
             <div class="card-badges">
               <span class="urgency-badge" style="background:${urg.bg};color:${urg.color}">${urg.label}</span><br>
               <span class="cat-badge" style="background:${meta.light};color:${meta.accent}">${meta.icon} ${meta.label}</span>
             </div>
           </div>
-          <div class="card-name display">${plant.name}</div>
           <div class="card-sunlight">☀️ ${plant.sunlight}</div>
           <div class="care-grid">
             ${[{icon:"💧",label:"Water",days:wDays,u:getUrgency(wDays)},{icon:"🌾",label:"Feed",days:fDays,u:getUrgency(fDays)}].map(item=>{
@@ -2040,13 +2181,15 @@ function renderLocations() {
         <div class="card-top-bar" style="background:${urg.color};opacity:${topU==="ok"?0.4:1}"></div>
         <div class="card-body">
           <div class="card-header">
-            <span class="card-emoji">${plant.emoji || "🌿"}</span>
+            <div class="card-name-row">
+              ${plant.emoji ? `<span class="card-emoji">${plant.emoji}</span>` : ""}
+              <span class="card-name display">${plant.name}</span>
+            </div>
             <div class="card-badges">
               <span class="urgency-badge" style="background:${urg.bg};color:${urg.color}">${urg.label}</span><br>
               <span class="cat-badge" style="background:${meta.light};color:${meta.accent}">${meta.icon} ${meta.label}</span>
             </div>
           </div>
-          <div class="card-name display">${plant.name}</div>
           <div class="card-sunlight">☀️ ${plant.sunlight}</div>
         </div>`;
       card.addEventListener("click", () => navigateTo("detail", plant.id));
@@ -2122,8 +2265,6 @@ function showManageLocationsModal() {
 // MULTI-SELECT SYSTEM
 // ══════════════════════════════════════════════════════
 
-let multiSelectMode = false;
-let selectedPlantIds = new Set();
 
 function toggleMultiSelect() {
   multiSelectMode = !multiSelectMode;
@@ -2341,7 +2482,6 @@ function setGrowOutcome(plantId, entryId, outcome) {
 }
 
 // ── Render Grow tab ──────────────────────────────────
-let growFormOpen = false;
 
 function renderGrowTab(plantId) {
   const container = document.getElementById("grow-tab-content");
@@ -3109,6 +3249,116 @@ function scheduleDailyCheck() {
 // ── End Push Notifications ───────────────────────────────────────
 
 
+
+// ══════════════════════════════════════════════════════
+// BACKUP & RESTORE
+// ══════════════════════════════════════════════════════
+
+const BACKUP_VERSION = 1;
+
+function exportGardenData() {
+  const backup = {
+    version:   BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    plants:    myPlants,
+    locations: userLocations,
+    grow:      grow,
+    journal:   journal,
+    meta:      loadMeta(),
+  };
+
+  const json = JSON.stringify(backup, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url  = URL.createObjectURL(blob);
+  const date = new Date().toISOString().slice(0,10);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `garden-keeper-backup-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("Garden data exported ✓");
+}
+
+function importGardenData(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const backup = JSON.parse(e.target.result);
+
+      // Validate it looks like a Garden Keeper backup
+      if (!backup.plants || !Array.isArray(backup.plants)) {
+        showToast("Invalid backup file", "warn");
+        return;
+      }
+
+      const plantCount    = backup.plants.length;
+      const photoCount    = Object.values(backup.journal || {}).reduce((s, arr) => s + arr.length, 0);
+      const growCount     = Object.values(backup.grow    || {}).reduce((s, arr) => s + arr.length, 0);
+      const locationCount = (backup.locations || []).length;
+
+      const msg = `Import ${plantCount} plant${plantCount!==1?"s":""}` +
+        (photoCount    ? `, ${photoCount} photo${photoCount!==1?"s":""}`   : "") +
+        (growCount     ? `, ${growCount} grow log${growCount!==1?"s":""}`  : "") +
+        (locationCount ? `, ${locationCount} location${locationCount!==1?"s":""}` : "") +
+        "?\n\nThis will replace your current garden data.";
+
+      if (!confirm(msg)) return;
+
+      // Restore all data
+      myPlants       = backup.plants;
+      userLocations  = backup.locations || userLocations;
+      grow           = backup.grow      || {};
+      journal        = backup.journal   || {};
+
+      // Persist to localStorage
+      savePlants();
+      saveLocations();
+      saveGrow();
+      saveJournal(journal);
+      if (backup.meta) saveMeta(backup.meta);
+
+      // Sync customNextId
+      customNextId = Math.max(1000, ...myPlants.filter(p=>p.custom).map(p=>p.id+1), 1000);
+
+      // Show status
+      const status = document.getElementById("backup-status");
+      if (status) {
+        status.textContent = `✓ Restored ${plantCount} plant${plantCount!==1?"s":""}${photoCount?" + "+photoCount+" photo"+( photoCount!==1?"s":""):""}`;
+        status.style.display = "block";
+        setTimeout(() => { status.style.display = "none"; }, 5000);
+      }
+
+      showToast(`✓ Garden restored — ${plantCount} plants`);
+      navigateTo("dashboard");
+
+    } catch(err) {
+      console.error("Import error:", err);
+      showToast("Could not read file", "warn");
+    }
+  };
+  reader.readAsText(file);
+}
+
+function initBackup() {
+  const exportBtn = document.getElementById("btn-export-data");
+  const importInput = document.getElementById("btn-import-data");
+  if (exportBtn && !exportBtn._wired) {
+    exportBtn._wired = true;
+    exportBtn.addEventListener("click", exportGardenData);
+  }
+  if (importInput && !importInput._wired) {
+    importInput._wired = true;
+    importInput.addEventListener("change", () => {
+      const file = importInput.files[0];
+      if (file) { importGardenData(file); importInput.value = ""; }
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// END BACKUP & RESTORE
+// ══════════════════════════════════════════════════════
+
 // ══════════════════════════════════════════════════════
 // APPEARANCE SETTINGS
 // ══════════════════════════════════════════════════════
@@ -3481,6 +3731,7 @@ function initSettings() {
   applyFont(appearance.fontId);
   applyCustomColors(appearance.customColors);
   applyFontSizes(appearance.fontSizes);
+  initBackup();
 }
 
 // ── Mobile nav sync ──
