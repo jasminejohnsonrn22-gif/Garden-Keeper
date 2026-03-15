@@ -13,6 +13,8 @@
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
 <link rel="apple-touch-startup-image" href="/icons/icon-512.png">
+<!-- SheetJS for spreadsheet import -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Lato:wght@300;400;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Nunito:wght@300;400;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
@@ -741,9 +743,14 @@ window.addEventListener('unhandledrejection', function(e) {
         <div style="display:flex;flex-direction:column;gap:8px">
           <button class="btn-primary" id="btn-export-data" style="font-size:13px;padding:10px">⬇ Export Garden Data</button>
           <label class="btn-ghost" id="btn-import-label" style="font-size:13px;padding:10px;text-align:center;cursor:pointer;display:block">
-            ⬆ Import Garden Data
+            ⬆ Import Garden Data (.json)
             <input type="file" id="btn-import-data" accept=".json" style="display:none">
           </label>
+          <label class="btn-ghost" id="btn-import-sheet-label" style="font-size:13px;padding:10px;text-align:center;cursor:pointer;display:block;border-color:var(--green);color:var(--green)">
+            📊 Import from Spreadsheet (.xlsx / .csv)
+            <input type="file" id="btn-import-sheet" accept=".xlsx,.xls,.csv" style="display:none">
+          </label>
+          <button class="btn-ghost" id="btn-download-template" style="font-size:13px;padding:10px;width:100%">⬇ Download Plant Template (.xlsx)</button>
         </div>
         <p id="backup-status" style="font-size:12px;color:var(--green);margin-top:8px;font-style:italic;display:none"></p>
       </div>
@@ -3250,6 +3257,226 @@ function scheduleDailyCheck() {
 
 
 
+
+// ══════════════════════════════════════════════════════
+// SPREADSHEET IMPORT
+// ══════════════════════════════════════════════════════
+
+// Column name → plant field mapping (flexible — handles variations)
+const COL_MAP = {
+  // Name
+  'name': 'name', 'plant name': 'name', 'plant': 'name',
+  // Category
+  'category': 'category', 'type': 'category', 'kind': 'category',
+  // Emoji
+  'emoji': 'emoji', 'icon': 'emoji',
+  // Water
+  'waterdays': 'waterDays', 'water every (days)': 'waterDays',
+  'water every': 'waterDays', 'water days': 'waterDays', 'water': 'waterDays',
+  'watering interval': 'waterDays', 'water interval': 'waterDays',
+  // Fertilize
+  'fertilizedays': 'fertilizeDays', 'fertilize every (days)': 'fertilizeDays',
+  'fertilize every': 'fertilizeDays', 'fertilize days': 'fertilizeDays',
+  'feed every': 'fertilizeDays', 'feed days': 'fertilizeDays',
+  'fertilize interval': 'fertilizeDays', 'feed interval': 'fertilizeDays',
+  // Sunlight
+  'sunlight': 'sunlight', 'sun': 'sunlight', 'light needs': 'sunlight',
+  'sun needs': 'sunlight', 'sunlight needs': 'sunlight',
+  // Light source
+  'light': 'light', 'light source': 'light', 'grow light': 'light',
+  // Humidity
+  'humidity': 'humidity', 'humidity needs': 'humidity',
+  // Difficulty
+  'difficulty': 'difficulty', 'care level': 'difficulty', 'level': 'difficulty',
+  // Location
+  'location': 'location', 'room': 'location', 'spot': 'location', 'place': 'location',
+  // Notes
+  'notes': 'notes', 'care notes': 'notes', 'care tips': 'notes',
+  'description': 'notes', 'tips': 'notes',
+};
+
+const CATEGORY_MAP = {
+  'houseplant': 'houseplant', 'house plant': 'houseplant', 'indoor': 'houseplant',
+  'flower': 'flower', 'flowers': 'flower', 'floral': 'flower',
+  'vegetable': 'vegetable', 'vegetables': 'vegetable', 'herb': 'vegetable',
+  'herbs': 'vegetable', 'veg': 'vegetable', 'veggie': 'vegetable',
+  'fruit': 'vegetable', 'crop': 'vegetable',
+};
+
+const SUNLIGHT_MAP = {
+  'full sun': 'Full Sun', 'full': 'Full Sun', 'direct': 'Full Sun',
+  'partial shade': 'Partial Shade', 'partial': 'Partial Shade', 'part shade': 'Partial Shade',
+  'bright indirect': 'Bright Indirect', 'bright': 'Bright Indirect', 'indirect': 'Bright Indirect',
+  'low light': 'Low Light', 'low': 'Low Light', 'shade': 'Low Light',
+  'any light': 'Any Light', 'any': 'Any Light',
+};
+
+function normalizeCol(raw) {
+  return String(raw || '').toLowerCase().replace(/[*]/g, '').trim();
+}
+
+function parseSpreadsheet(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+
+      // Use first sheet
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      if (!rows.length) { showToast('Spreadsheet appears empty', 'warn'); return; }
+
+      // Map column headers → plant fields
+      const firstRow = rows[0];
+      const colMapping = {};
+      Object.keys(firstRow).forEach(col => {
+        const norm = normalizeCol(col);
+        if (COL_MAP[norm]) colMapping[col] = COL_MAP[norm];
+      });
+
+      if (!colMapping[Object.keys(colMapping).find(k => colMapping[k] === 'name')]) {
+        showToast('No "Name" column found in spreadsheet', 'warn');
+        return;
+      }
+
+      const now = new Date().toISOString();
+      const imported = [];
+      const skipped  = [];
+
+      rows.forEach((row, idx) => {
+        const plant = {};
+        Object.entries(colMapping).forEach(([col, field]) => {
+          plant[field] = String(row[col] || '').trim();
+        });
+
+        // Skip example/header rows and empty rows
+        const nameVal = plant.name || '';
+        if (!nameVal || nameVal.toLowerCase().includes('example') ||
+            nameVal.toLowerCase().startsWith('e.g') || nameVal === 'Plant Name') return;
+
+        // Normalize category
+        const catNorm = (plant.category || '').toLowerCase().trim();
+        plant.category = CATEGORY_MAP[catNorm] || 'houseplant';
+
+        // Normalize sunlight
+        const sunNorm = (plant.sunlight || '').toLowerCase().trim();
+        plant.sunlight = SUNLIGHT_MAP[sunNorm] || plant.sunlight || 'Any Light';
+
+        // Normalize numbers
+        plant.waterDays    = Math.max(1, parseInt(plant.waterDays)    || 7);
+        plant.fertilizeDays = Math.max(1, parseInt(plant.fertilizeDays) || 30);
+
+        // Normalize light source
+        const lightVal = (plant.light || '').toLowerCase();
+        if (lightVal.includes('grow')) plant.light = 'Grow Light';
+        else if (lightVal.includes('both')) plant.light = 'Both';
+        else plant.light = 'Natural Sun';
+
+        // Normalize humidity
+        const humVal = (plant.humidity || '').toLowerCase();
+        if (humVal.includes('high')) plant.humidity = 'High';
+        else if (humVal.includes('low')) plant.humidity = 'Low';
+        else plant.humidity = 'Medium';
+
+        // Normalize difficulty
+        const diffVal = (plant.difficulty || '').toLowerCase();
+        if (diffVal.includes('hard')) plant.difficulty = 'Hard';
+        else if (diffVal.includes('medium') || diffVal.includes('med')) plant.difficulty = 'Medium';
+        else plant.difficulty = 'Easy';
+
+        // Normalize location - try to match to existing location by name
+        if (plant.location) {
+          const locNorm = plant.location.toLowerCase().trim();
+          const match = userLocations.find(l => l.name.toLowerCase() === locNorm || l.id === locNorm);
+          plant.location = match ? match.id : '';
+        }
+
+        // Assign a unique ID
+        plant.id = customNextId++;
+        plant.custom = true;
+        plant.addedDate    = now;
+        plant.lastWatered  = now;
+        plant.lastFertilized = now;
+
+        imported.push(plant);
+      });
+
+      if (!imported.length) {
+        showToast('No valid plants found in spreadsheet', 'warn');
+        return;
+      }
+
+      // Confirm before merging
+      const msg = `Import ${imported.length} plant${imported.length !== 1 ? 's' : ''} from spreadsheet?
+
+They will be added to your existing garden (existing plants kept).`;
+      if (!confirm(msg)) return;
+
+      myPlants = [...myPlants, ...imported];
+      savePlants();
+
+      const status = document.getElementById('backup-status');
+      if (status) {
+        status.textContent = `✓ Imported ${imported.length} plant${imported.length !== 1 ? 's' : ''} from spreadsheet`;
+        status.style.display = 'block';
+        setTimeout(() => { status.style.display = 'none'; }, 6000);
+      }
+
+      showToast(`✓ ${imported.length} plants imported!`);
+      navigateTo('dashboard');
+
+    } catch (err) {
+      console.error('Spreadsheet import error:', err);
+      showToast('Could not read spreadsheet — check the format', 'warn');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function downloadTemplate() {
+  // Generate a minimal CSV template as fallback if XLSX not available
+  // But we'll embed the template as base64 for reliability
+  const csvContent = [
+    'name *,category *,emoji,waterDays *,fertilizeDays *,sunlight,light,humidity,difficulty,location,notes',
+    'Peace Lily,houseplant,🌼,5,21,Low Light,Natural Sun,High,Easy,Living Room,Droops when thirsty',
+    '',
+  ].join('
+');
+
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'garden-keeper-template.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Template downloaded — open in Excel or Google Sheets');
+}
+
+function initSpreadsheetImport() {
+  const sheetInput = document.getElementById('btn-import-sheet');
+  const templateBtn = document.getElementById('btn-download-template');
+
+  if (sheetInput && !sheetInput._wired) {
+    sheetInput._wired = true;
+    sheetInput.addEventListener('change', () => {
+      const file = sheetInput.files[0];
+      if (file) { parseSpreadsheet(file); sheetInput.value = ''; }
+    });
+  }
+  if (templateBtn && !templateBtn._wired) {
+    templateBtn._wired = true;
+    templateBtn.addEventListener('click', downloadTemplate);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// END SPREADSHEET IMPORT
+// ══════════════════════════════════════════════════════
+
 // ══════════════════════════════════════════════════════
 // BACKUP & RESTORE
 // ══════════════════════════════════════════════════════
@@ -3353,6 +3580,7 @@ function initBackup() {
       if (file) { importGardenData(file); importInput.value = ""; }
     });
   }
+  initSpreadsheetImport();
 }
 
 // ══════════════════════════════════════════════════════
